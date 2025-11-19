@@ -31,7 +31,18 @@ public class BookingController {
             // Gọi logic ở Service
             Booking newBooking = bookingService.createBooking(request);
             // Nếu thành công, trả về 200 OK + booking vừa tạo
-            return ResponseEntity.ok(newBooking);
+//            return ResponseEntity.ok(newBooking);
+            // 2. --- PHẦN MỚI: Đóng gói vào Response DTO ---
+            BookingResponseDTO response = new BookingResponseDTO(
+                    newBooking.getId(),           // Lấy ID vừa tạo
+                    newBooking.getStatus(),       // Lấy trạng thái
+                    "Đặt lịch thành công!",       // Thêm thông báo
+                    newBooking.getDateBooking(),  // Trả lại ngày cho khách kiểm tra
+                    newBooking.getTimeStart()     // Trả lại giờ
+            );
+
+            // 3. Trả về cái hộp gọn nhẹ này
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             // Nếu User/Schedule không tìm thấy (lỗi ở Service)
             // Trả về lỗi 400 Bad Request + thông báo lỗi

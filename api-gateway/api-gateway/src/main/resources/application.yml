@@ -1,47 +1,31 @@
 server:
-  port: 8080 # Gateway luôn ch?y ? c?ng chính
+  port: 8080
 
 spring:
   application:
     name: api-gateway
   cloud:
     gateway:
-      # C?u hình ??nh tuy?n (Routing)
       routes:
-        # --- 1. ROUTE ??N BOOKING SERVICE ---
+        # --- Booking Service ---
         - id: booking-service
-          # ??a ch? th?t c?a Booking Service
           uri: http://localhost:8082
           predicates:
-            # N?u link b?t ??u b?ng /api/bookings... thì chuy?n sang 8082
             - Path=/api/bookings/**
 
-        # --- 2. ROUTE ??N PAYMENT SERVICE ---
+        # --- Payment Service ---
         - id: payment-service
-          # ??a ch? th?t c?a Payment Service
           uri: http://localhost:8083
           predicates:
-            # N?u link b?t ??u b?ng /api/payments... thì chuy?n sang 8083
             - Path=/api/payments/**
 
-        # --- 3. ROUTE ??N USER SERVICE (N?u có) ---
+        # --- User Service ---
         - id: user-service
-          # ??a ch? th?t c?a User Service (th??ng là 8081)
           uri: http://localhost:8081
           predicates:
             - Path=/api/users/**
 
-        # --- 4. ROUTE ??N DOCTOR/SCHEDULE SERVICE (N?u có) ---
-        # B?n có th? copy block này và s?a port n?u c?n
-        # - id: doctor-service
-        #   uri: http://localhost:xxxx
-        #   predicates:
-        #     - Path=/api/doctors/**
-
-# (Tùy ch?n) C?u hình Logging ?? d? debug xem Gateway có ho?t ??ng không
 logging:
   level:
-    org.springframework.cloud.gateway: TRACE
-    org.springframework.http.server.reactive: DEBUG
-    org.springframework.web.reactive: DEBUG
+    org.springframework.cloud.gateway: DEBUG
     reactor.netty: DEBUG
