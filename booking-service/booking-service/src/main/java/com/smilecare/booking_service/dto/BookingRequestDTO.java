@@ -1,4 +1,4 @@
-package com.smilecare.booking_service;
+package com.smilecare.booking_service.dto;
 
 import java.time.LocalDate;
 import java.time.LocalTime;

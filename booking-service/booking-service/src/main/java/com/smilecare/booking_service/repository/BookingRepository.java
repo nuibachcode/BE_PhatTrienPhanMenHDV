@@ -1,4 +1,5 @@
 // BookingRepository.java
-package com.smilecare.booking_service;
+package com.smilecare.booking_service.repository;
+import com.smilecare.booking_service.entity.Booking;
 import org.springframework.data.jpa.repository.JpaRepository;
 public interface BookingRepository extends JpaRepository<Booking, Integer> {}

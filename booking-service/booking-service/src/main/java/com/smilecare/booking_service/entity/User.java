@@ -1,10 +1,9 @@
-package com.smilecare.booking_service;
-
+package com.smilecare.booking_service.entity;
 
 import jakarta.persistence.*;
 @Entity
-@Table(name = "schedule")
-public class Schedule {
+@Table(name = "user")
+public class User {
     @Id
     private Integer id;
     // Getters/Setters

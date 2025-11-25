@@ -1,5 +1,10 @@
-package com.smilecare.payment_service;
+package com.smilecare.payment_service.service;
 
+import com.smilecare.payment_service.dto.PaymentRequestDTO;
+import com.smilecare.payment_service.entity.Booking;
+import com.smilecare.payment_service.entity.Payment;
+import com.smilecare.payment_service.repository.BookingRepository;
+import com.smilecare.payment_service.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;

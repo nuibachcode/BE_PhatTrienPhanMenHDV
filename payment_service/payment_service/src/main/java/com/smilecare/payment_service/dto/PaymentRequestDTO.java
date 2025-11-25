@@ -1,4 +1,4 @@
-package com.smilecare.payment_service;
+package com.smilecare.payment_service.dto;
 
 
 

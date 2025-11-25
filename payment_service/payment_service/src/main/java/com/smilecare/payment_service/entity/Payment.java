@@ -1,4 +1,4 @@
-package com.smilecare.payment_service;
+package com.smilecare.payment_service.entity;
 import jakarta.persistence.*;
 
 @Entity // 1. Báo cho JPA biết đây là 1 bảng

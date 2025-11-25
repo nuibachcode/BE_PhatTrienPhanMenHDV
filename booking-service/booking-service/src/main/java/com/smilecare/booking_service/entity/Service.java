@@ -1,4 +1,4 @@
-package com.smilecare.booking_service;
+package com.smilecare.booking_service.entity;
 
 import jakarta.persistence.*;
 import java.util.HashSet; // Import

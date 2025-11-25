@@ -1,9 +1,14 @@
-package com.smilecare.booking_service;
+package com.smilecare.booking_service.controller;
 
+import com.smilecare.booking_service.entity.Booking;
+import com.smilecare.booking_service.dto.BookingRequestDTO;
+import com.smilecare.booking_service.dto.BookingResponseDTO;
+import com.smilecare.booking_service.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController // Báo Spring đây là API Controller
 @RequestMapping("/api/bookings") // Đặt đường dẫn gốc
@@ -17,8 +22,20 @@ public class BookingController {
      * (GET http://localhost:8082/api/bookings)
      */
     @GetMapping
-    public List<Booking> getAllBookings() {
-        return bookingService.getAllBookings();
+    public List<BookingResponseDTO> getAllBookings() {
+        // 1. Lấy danh sách Entity từ Service
+        List<Booking> bookings = bookingService.getAllBookings();
+
+        // 2. Chuyển đổi từng Entity sang DTO (Dùng Stream)
+        return bookings.stream()
+                .map(booking -> new BookingResponseDTO(
+                        booking.getId(),
+                        booking.getStatus(),
+                        booking.getDescription(), // Dùng tạm description làm message
+                        booking.getDateBooking(),
+                        booking.getTimeStart()
+                ))
+                .collect(Collectors.toList());
     }
 
     /**

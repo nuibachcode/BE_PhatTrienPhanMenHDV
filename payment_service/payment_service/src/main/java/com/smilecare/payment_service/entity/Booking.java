@@ -1,10 +1,9 @@
-package com.smilecare.payment_service;
+package com.smilecare.payment_service.entity;
 
 
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 
 @Entity
 public class Booking {

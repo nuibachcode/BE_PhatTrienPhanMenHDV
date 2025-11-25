@@ -1,7 +1,10 @@
-package com.smilecare.payment_service;
+package com.smilecare.payment_service.controller;
 
 
 
+import com.smilecare.payment_service.entity.Payment;
+import com.smilecare.payment_service.dto.PaymentRequestDTO;
+import com.smilecare.payment_service.service.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -1,9 +1,8 @@
-package com.smilecare.booking_service;
+package com.smilecare.booking_service.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import java.io.Serializable;
-import java.util.Objects;
 
 @Embeddable // Báo cho JPA biết đây là một lớp nhúng
 public class BookingServiceKey implements Serializable {

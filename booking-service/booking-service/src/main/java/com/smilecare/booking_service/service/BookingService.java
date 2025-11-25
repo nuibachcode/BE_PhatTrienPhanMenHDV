@@ -1,6 +1,14 @@
-package com.smilecare.booking_service;
+package com.smilecare.booking_service.service;
 
 // 1. CHỈ IMPORT @Service CỦA SPRING
+import com.smilecare.booking_service.dto.BookingRequestDTO;
+import com.smilecare.booking_service.entity.Booking;
+import com.smilecare.booking_service.entity.Schedule;
+import com.smilecare.booking_service.entity.User;
+import com.smilecare.booking_service.repository.BookingRepository;
+import com.smilecare.booking_service.repository.ScheduleRepository;
+import com.smilecare.booking_service.repository.ServiceRepository;
+import com.smilecare.booking_service.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -40,8 +48,8 @@ public class BookingService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Schedule: " + request.getScheduleId()));
 
         // --- SỬA 1 (Dòng 43 cũ) ---
-        // Dùng tên đầy đủ: "com.smilecare.booking_service.Service"
-        List<com.smilecare.booking_service.Service> servicesToBook =
+        // Dùng tên đầy đủ: "com.smilecare.booking_service.entity.Service"
+        List<com.smilecare.booking_service.entity.Service> servicesToBook =
                 serviceRepository.findAllById(request.getServiceIds());
 
         // D. Tạo đối tượng Booking mới (Giữ nguyên)
@@ -58,8 +66,8 @@ public class BookingService {
 
         // F. Tạo và thêm các liên kết
         // --- SỬA 2 (Dòng 61 cũ) ---
-        // Dùng tên đầy đủ: "com.smilecare.booking_service.Service"
-        for (com.smilecare.booking_service.Service s : servicesToBook) {
+        // Dùng tên đầy đủ: "com.smilecare.booking_service.entity.Service"
+        for (com.smilecare.booking_service.entity.Service s : servicesToBook) {
 
             // --- SỬA 3 (Dòng 64 cũ) ---
             // 's' bây giờ đã là Entity, nên .getPrice() sẽ hoạt động
