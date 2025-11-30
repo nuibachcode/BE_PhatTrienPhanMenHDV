@@ -7,6 +7,15 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Integer> {
-    boolean existsByEmail(String email); // Kiểm tra trùng email
-    Optional<User> findByUserName(String userName); // Tìm theo user name
+
+    // Kiểm tra trùng email (Thuộc tính email KHÔNG thay đổi)
+    boolean existsByEmail(String email);
+
+    // ĐÃ SỬA: Thay thế findByUserName bằng findByAccount
+    // Lý do: Thuộc tính được dùng để đăng nhập/xác thực đã được đổi tên từ userName sang account trong Entity User.
+    Optional<User> findByAccount(String account);
+
+    // Kiểm tra trùng phone (Thuộc tính phone KHÔNG thay đổi)
+    boolean existsByPhone(String phone);
+    Optional<User> findByAccountOrEmail(String account, String email);
 }

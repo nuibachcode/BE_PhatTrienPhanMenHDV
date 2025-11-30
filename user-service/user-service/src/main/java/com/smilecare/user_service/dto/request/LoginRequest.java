@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class LoginRequest {
-    private String  userName;
+    // Sửa userName -> account để khớp với Frontend
+    private String account;
     private String password;
 }

@@ -1,4 +1,4 @@
-package com.smilecare.user_service.dto.respone;
+package com.smilecare.user_service.dto.response;
 
 
 import lombok.AllArgsConstructor;

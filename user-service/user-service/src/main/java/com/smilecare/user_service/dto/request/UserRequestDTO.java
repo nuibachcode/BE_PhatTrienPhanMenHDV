@@ -1,14 +1,23 @@
 package com.smilecare.user_service.dto.request;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class UserRequestDTO {
-    private String name;
-    private String userName;
+    // Tên field từ Frontend
+    private String fullName; // Map vào Name
+    private String account;  // Map vào UserName
     private String email;
-    private String password;
     private String phone;
+    private String password;
     private String address;
-    private Integer roleId; // Khách chỉ cần gửi ID của role (VD: 2 là Patient)
+
+    // Role ID mặc định khi đăng ký (sẽ set cứng là 2 trong Service)
+    private Integer roleId;
 }
