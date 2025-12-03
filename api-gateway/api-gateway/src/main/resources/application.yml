@@ -38,6 +38,13 @@ spring:
             - Path=/api/doctors/**
             - Path=/api/schedules/**
 
+        # --- ROUTE CHO DOCTOR (Nếu có) ---
+        - id: service
+          uri: lb://service
+          predicates:
+            - Path=/api/service/**
+
+
       # --- CẤU HÌNH CORS (QUAN TRỌNG CHO FRONTEND) ---
       globalcors:
         cors-configurations:
