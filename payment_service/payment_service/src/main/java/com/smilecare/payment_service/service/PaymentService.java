@@ -10,58 +10,49 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
-@Service // 1. Đánh dấu đây là lớp Service (chứa logic)
+@Service
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final BookingRepository bookingRepository;
 
-    @Autowired // 2. Tự động "tiêm" Repository vào đây
+    @Autowired
     public PaymentService(PaymentRepository paymentRepository, BookingRepository bookingRepository) {
         this.paymentRepository = paymentRepository;
         this.bookingRepository = bookingRepository;
     }
 
-    // --- Logic 1: Lấy tất cả ---
     public List<Payment> getAllPayments() {
         return paymentRepository.findAll();
     }
 
-    // --- Logic 2: Lấy 1 theo ID ---
     public Optional<Payment> getPaymentById(Integer id) {
-        return paymentRepository.findById(id); // Dùng Optional để tránh lỗi null
+        return paymentRepository.findById(id);
     }
 
-    // --- Logic 3: Tạo mới (Quan trọng nhất) ---
     public Payment createPayment(PaymentRequestDTO request) {
-        // A. Kiểm tra xem bookingId có thật không
+        // Kiểm tra Booking có tồn tại không
         Booking booking = bookingRepository.findById(request.getBookingId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Booking ID: " + request.getBookingId()));
 
-        // B. Tạo đối tượng Payment mới
         Payment newPayment = new Payment();
         newPayment.setAmount(request.getAmount());
-        newPayment.setMethod(request.getMethod()); // Sẽ map vào cột 'method'
+        newPayment.setMethod(request.getMethod());
         newPayment.setNote(request.getNote());
-        newPayment.setStatus("PENDING"); // Mặc định là PENDING
 
-        // C. Gán liên kết
+        // Tự động sinh mã giao dịch (TXN + Thời gian)
+        newPayment.setTransactionCode("TXN-" + System.currentTimeMillis());
+
+        newPayment.setStatus("PENDING");
         newPayment.setBooking(booking);
 
-        // D. Lưu vào DB và trả về
         return paymentRepository.save(newPayment);
     }
 
-    // --- Logic 4: Cập nhật trạng thái ---
     public Payment updatePaymentStatus(Integer id, String status) {
-        // A. Tìm payment
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Payment ID: " + id));
-
-        // B. Cập nhật trạng thái
         payment.setStatus(status);
-
-        // C. Lưu lại
         return paymentRepository.save(payment);
     }
 }

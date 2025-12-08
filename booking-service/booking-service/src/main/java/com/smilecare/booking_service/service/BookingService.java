@@ -1,83 +1,84 @@
 package com.smilecare.booking_service.service;
 
-// 1. CHỈ IMPORT @Service CỦA SPRING
 import com.smilecare.booking_service.dto.BookingRequestDTO;
 import com.smilecare.booking_service.entity.Booking;
-import com.smilecare.booking_service.entity.Schedule;
-import com.smilecare.booking_service.entity.User;
+import com.smilecare.booking_service.entity.BookingServiceAssociation;
+import com.smilecare.booking_service.entity.Service;
 import com.smilecare.booking_service.repository.BookingRepository;
-import com.smilecare.booking_service.repository.ScheduleRepository;
+import com.smilecare.booking_service.repository.BookingServiceRepository;
 import com.smilecare.booking_service.repository.ServiceRepository;
-import com.smilecare.booking_service.repository.UserRepository;
-import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
+// import org.springframework.stereotype.Service; // Cẩn thận import nhầm class Service của mình
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-// (Không import Service của bạn ở đây)
+import java.util.Optional;
 
-@Service // 2. Giữ nguyên @Service
+@org.springframework.stereotype.Service // Dùng tường minh để tránh nhầm với Entity Service
 public class BookingService {
 
     @Autowired
     private BookingRepository bookingRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private ScheduleRepository scheduleRepository;
-    @Autowired
-    private ServiceRepository serviceRepository;
 
-    /**
-     * Logic 1: Lấy tất cả các booking
-     */
+    @Autowired
+    private BookingServiceRepository bookingServiceRepository; // Repo mới để lưu bảng trung gian
+
+    @Autowired
+    private ServiceRepository serviceRepository; // Repo để lấy giá dịch vụ
+
+    // Lấy tất cả
     public List<Booking> getAllBookings() {
         return bookingRepository.findAll();
     }
 
-    /**
-     * Logic 2: Tạo một booking mới (ĐÃ SỬA LỖI ĐỤNG HÀNG)
-     */
+    // Lấy 1 cái theo ID
+    public Optional<Booking> getBookingById(Integer id) {
+        return bookingRepository.findById(id);
+    }
+    public List<Booking> getBookingsByPatientId(Integer patientId) {
+        return bookingRepository.findByPatientIdOrderByDateBookingDesc(patientId);
+    }
+    // --- TẠO MỚI BOOKING (KÈM DỊCH VỤ) ---
+    @Transactional // Quan trọng: Để đảm bảo lưu cả 2 bảng cùng lúc, lỗi thì rollback
     public Booking createBooking(BookingRequestDTO request) {
 
-        // A. Tìm User (Giữ nguyên)
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy User: " + request.getUserId()));
+        // 1. Tạo và Lưu thông tin Booking trước
+        Booking newBooking = new Booking();
+        newBooking.setDateBooking(request.getDateBooking());
+        newBooking.setTimeStart(request.getTimeStart());
+        newBooking.setTimeEnd(request.getTimeEnd());
+        newBooking.setPatientId(request.getPatientId());
+        newBooking.setScheduleId(request.getScheduleId());
+        newBooking.setDescription(request.getDescription());
 
-        // B. Tìm Schedule (Giữ nguyên)
-        Schedule schedule = scheduleRepository.findById(request.getScheduleId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Schedule: " + request.getScheduleId()));
+        // Set trạng thái mặc định
+        newBooking.setStatus("PENDING");
 
-        // --- SỬA 1 (Dòng 43 cũ) ---
-        // Dùng tên đầy đủ: "com.smilecare.booking_service.entity.Service"
-        List<com.smilecare.booking_service.entity.Service> servicesToBook =
-                serviceRepository.findAllById(request.getServiceIds());
+        // Lưu xuống DB để lấy ID
+        Booking savedBooking = bookingRepository.save(newBooking);
 
-        // D. Tạo đối tượng Booking mới (Giữ nguyên)
-        Booking booking = new Booking();
-        booking.setUser(user);
-        booking.setSchedule(schedule);
-        booking.setStatus("PENDING");
-        booking.setDateBooking(request.getDateBooking());
-        booking.setTimeStart(request.getTimeStart());
-        booking.setDescription(request.getDescription());
+        // 2. Xử lý lưu danh sách Dịch vụ (Nếu có)
+        // Check xem khách có gửi kèm serviceIds không (Ví dụ: [1, 2])
+        if (request.getServiceIds() != null && !request.getServiceIds().isEmpty()) {
 
-        // E. LƯU LẦN 1 (BẮT BUỘC)
-        Booking savedBooking = bookingRepository.save(booking);
+            for (Integer serviceId : request.getServiceIds()) {
+                // A. Tìm thông tin dịch vụ gốc để lấy giá tiền
+                Service service = serviceRepository.findById(serviceId)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy Service có ID: " + serviceId));
 
-        // F. Tạo và thêm các liên kết
-        // --- SỬA 2 (Dòng 61 cũ) ---
-        // Dùng tên đầy đủ: "com.smilecare.booking_service.entity.Service"
-        for (com.smilecare.booking_service.entity.Service s : servicesToBook) {
+                // B. Tạo bản ghi trong bảng trung gian (BookingServiceAssociation)
+                BookingServiceAssociation association = new BookingServiceAssociation();
+                association.setBooking(savedBooking); // Gắn với Booking vừa tạo
+                association.setService(service);      // Gắn với Service tìm được
 
-            // --- SỬA 3 (Dòng 64 cũ) ---
-            // 's' bây giờ đã là Entity, nên .getPrice() sẽ hoạt động
-            int currentPrice = s.getPrice().intValue();
+                // Lưu giá tiền tại thời điểm đặt (Quan trọng cho doanh thu sau này)
+                association.setPriceAtBooking(service.getPrice());
 
-            // Dòng 67 cũ bây giờ cũng sẽ hoạt động
-            savedBooking.addService(s, currentPrice);
+                // C. Lưu vào bảng bookingservice
+                bookingServiceRepository.save(association);
+            }
         }
 
-        // G. LƯU LẦN 2
-        return bookingRepository.save(savedBooking);
+        return savedBooking;
     }
 }
