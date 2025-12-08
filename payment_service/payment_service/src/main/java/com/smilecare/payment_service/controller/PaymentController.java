@@ -1,59 +1,65 @@
 package com.smilecare.payment_service.controller;
 
-
-
-import com.smilecare.payment_service.entity.Payment;
 import com.smilecare.payment_service.dto.PaymentRequestDTO;
+import com.smilecare.payment_service.dto.PaymentResponseDTO; // Nhớ import DTO này
+import com.smilecare.payment_service.entity.Payment;
 import com.smilecare.payment_service.service.PaymentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-@RestController // 1. Báo Spring đây là API Controller (trả về JSON)
-@RequestMapping("/api/payments") // 2. Đường dẫn gốc cho tất cả API
+@RestController
+@RequestMapping("/api/payments")
 public class PaymentController {
 
     @Autowired
     private PaymentService paymentService;
 
-    // --- API 1: Lấy tất cả ---
-    // (GET http://localhost:8083/api/payments)
+    // --- API 1: Lấy tất cả (Trả về danh sách DTO) ---
     @GetMapping
-    public List<Payment> getAllPayments() {
-        return paymentService.getAllPayments();
+    public ResponseEntity<List<PaymentResponseDTO>> getAllPayments() {
+        List<Payment> payments = paymentService.getAllPayments();
+
+        // Dùng Stream để chuyển đổi từng Entity -> DTO
+        List<PaymentResponseDTO> dtos = payments.stream()
+                .map(payment -> new PaymentResponseDTO(payment))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtos);
     }
 
-    // --- API 2: Lấy 1 theo ID ---
-    // (GET http://localhost:8083/api/payments/1)
+    // --- API 2: Lấy 1 theo ID (Trả về DTO) ---
     @GetMapping("/{id}")
-    public ResponseEntity<Payment> getPaymentById(@PathVariable Integer id) { // 3. Lấy id từ URL
+    public ResponseEntity<PaymentResponseDTO> getPaymentById(@PathVariable Integer id) {
         return paymentService.getPaymentById(id)
-                .map(payment -> ResponseEntity.ok(payment)) // 4. Nếu tìm thấy, trả về 200 OK
-                .orElse(ResponseEntity.notFound().build()); // 5. Nếu không, trả về 404 Not Found
+                .map(payment -> ResponseEntity.ok(new PaymentResponseDTO(payment))) // Gói vào DTO
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // --- API 3: Tạo mới ---
-    // (POST http://localhost:8083/api/payments)
+    // --- API 3: Tạo mới (Trả về DTO) ---
     @PostMapping
-    public Payment createPayment(@RequestBody PaymentRequestDTO request) { // 6. Lấy data từ JSON
-        return paymentService.createPayment(request);
+    public ResponseEntity<PaymentResponseDTO> createPayment(@RequestBody PaymentRequestDTO request) {
+        Payment newPayment = paymentService.createPayment(request);
+        // Trả về DTO để giấu BookingID ngay khi tạo xong
+        return ResponseEntity.ok(new PaymentResponseDTO(newPayment));
     }
 
-    // --- API 4: Cập nhật trạng thái ---
-    // (PUT http://localhost:8083/api/payments/1/status)
+    // --- API 4: Cập nhật trạng thái (Trả về DTO) ---
     @PutMapping("/{id}/status")
-    public ResponseEntity<Payment> updateStatus(
+    public ResponseEntity<PaymentResponseDTO> updateStatus(
             @PathVariable Integer id,
-            @RequestBody Map<String, String> requestBody) { // 7. Nhận JSON đơn giản
+            @RequestBody Map<String, String> requestBody) {
 
         try {
-            String status = requestBody.get("status"); // Lấy giá trị từ {"status": "COMPLETED"}
+            String status = requestBody.get("status");
             Payment updated = paymentService.updatePaymentStatus(id, status);
-            return ResponseEntity.ok(updated);
+            return ResponseEntity.ok(new PaymentResponseDTO(updated));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build(); // Nếu không tìm thấy ID
+            return ResponseEntity.notFound().build();
         }
     }
 }

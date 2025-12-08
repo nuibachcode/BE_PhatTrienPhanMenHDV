@@ -1,35 +1,58 @@
 package com.smilecare.booking_service.entity;
 
-
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "booking_service")
+@Table(name = "bookingservice") // 1. Khớp tên bảng trong XAMPP (viết liền, không gạch dưới)
 public class BookingServiceAssociation {
 
-    @EmbeddedId // 1. Dùng Khóa gộp (file bạn vừa tạo ở trên)
-    private BookingServiceKey id = new BookingServiceKey();
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id; // 2. Bảng này có ID riêng, không cần dùng khóa gộp (EmbeddedId)
 
-    // --- Định nghĩa liên kết ---
+    // --- Quan hệ với bảng Booking ---
     @ManyToOne
-    @MapsId("bookingId") // 2. Ánh xạ 'bookingId' từ Key
-    @JoinColumn(name = "booking_id")
+    @JoinColumn(name = "bookingId") // 3. Khớp cột 'bookingId' trong ảnh XAMPP
     private Booking booking;
 
+    // --- Quan hệ với bảng Service ---
     @ManyToOne
-    @MapsId("serviceId") // 3. Ánh xạ 'serviceId' từ Key
-    @JoinColumn(name = "service_id")
+    @JoinColumn(name = "serviceId") // 4. Khớp cột 'serviceId' trong ảnh XAMPP
     private Service service;
 
-    // --- Cột dữ liệu thêm (Lý do chúng ta phải làm cách này) ---
-    @Column(name = "PriceAtBooking") // 4. Khớp với tên cột trong DB
-    private Integer priceAtBooking;
+    // --- Giá tại thời điểm đặt ---
+    @Column(name = "priceAtBooking") // 5. Khớp cột 'priceAtBooking'
+    private Long priceAtBooking;
 
-    public BookingServiceKey getId() {
+    @Column(name = "createdAt")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updatedAt")
+    private LocalDateTime updatedAt;
+
+    // --- Constructor rỗng ---
+    public BookingServiceAssociation() {
+    }
+
+    // --- Tự động lưu thời gian ---
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    // --- Getters & Setters ---
+    public Integer getId() {
         return id;
     }
 
-    public void setId(BookingServiceKey id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
@@ -41,19 +64,35 @@ public class BookingServiceAssociation {
         this.booking = booking;
     }
 
-    public Integer getPriceAtBooking() {
-        return priceAtBooking;
-    }
-
-    public void setPriceAtBooking(Integer priceAtBooking) {
-        this.priceAtBooking = priceAtBooking;
-    }
-
     public Service getService() {
         return service;
     }
 
     public void setService(Service service) {
         this.service = service;
+    }
+
+    public Long getPriceAtBooking() {
+        return priceAtBooking;
+    }
+
+    public void setPriceAtBooking(Long priceAtBooking) {
+        this.priceAtBooking = priceAtBooking;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

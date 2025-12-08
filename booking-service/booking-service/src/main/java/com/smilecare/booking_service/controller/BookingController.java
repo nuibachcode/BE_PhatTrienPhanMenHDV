@@ -1,69 +1,67 @@
 package com.smilecare.booking_service.controller;
 
-import com.smilecare.booking_service.entity.Booking;
 import com.smilecare.booking_service.dto.BookingRequestDTO;
-import com.smilecare.booking_service.dto.BookingResponseDTO;
+import com.smilecare.booking_service.dto.BookingResponseDTO; // Import DTO của bạn
+import com.smilecare.booking_service.entity.Booking;
 import com.smilecare.booking_service.service.BookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.stream.Collectors;
 
-@RestController // Báo Spring đây là API Controller
-@RequestMapping("/api/bookings") // Đặt đường dẫn gốc
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/bookings")
 public class BookingController {
 
-    @Autowired // Tiêm (Inject) "bộ não" Service vào
+    @Autowired
     private BookingService bookingService;
 
-    /**
-     * API 1: Lấy tất cả
-     * (GET http://localhost:8082/api/bookings)
-     */
+    // Lấy tất cả (Giữ nguyên trả về Entity hoặc đổi sang DTO nếu muốn)
     @GetMapping
-    public List<BookingResponseDTO> getAllBookings() {
-        // 1. Lấy danh sách Entity từ Service
-        List<Booking> bookings = bookingService.getAllBookings();
-
-        // 2. Chuyển đổi từng Entity sang DTO (Dùng Stream)
-        return bookings.stream()
-                .map(booking -> new BookingResponseDTO(
-                        booking.getId(),
-                        booking.getStatus(),
-                        booking.getDescription(), // Dùng tạm description làm message
-                        booking.getDateBooking(),
-                        booking.getTimeStart()
-                ))
-                .collect(Collectors.toList());
+    public List<Booking> getAllBookings() {
+        return bookingService.getAllBookings();
     }
 
-    /**
-     * API 2: Tạo mới
-     * (POST http://localhost:8082/api/bookings)
-     */
-    @PostMapping
-    public ResponseEntity<?> createBooking(@RequestBody BookingRequestDTO request) {
-        try {
-            // Gọi logic ở Service
-            Booking newBooking = bookingService.createBooking(request);
-            // Nếu thành công, trả về 200 OK + booking vừa tạo
-//            return ResponseEntity.ok(newBooking);
-            // 2. --- PHẦN MỚI: Đóng gói vào Response DTO ---
-            BookingResponseDTO response = new BookingResponseDTO(
-                    newBooking.getId(),           // Lấy ID vừa tạo
-                    newBooking.getStatus(),       // Lấy trạng thái
-                    "Đặt lịch thành công!",       // Thêm thông báo
-                    newBooking.getDateBooking(),  // Trả lại ngày cho khách kiểm tra
-                    newBooking.getTimeStart()     // Trả lại giờ
-            );
+    // Lấy 1 cái theo ID
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getBookingById(@PathVariable Integer id) {
+        return bookingService.getBookingById(id)
+                .map(booking -> {
+                    // Chuyển Entity -> ResponseDTO
+                    BookingResponseDTO response = new BookingResponseDTO(
+                            booking.getId(),
+                            booking.getStatus(),
+                            "Tìm thấy lịch hẹn thành công",
+                            booking.getDateBooking(),
+                            booking.getTimeStart()
+                    );
+                    return ResponseEntity.ok(response);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-            // 3. Trả về cái hộp gọn nhẹ này
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException e) {
-            // Nếu User/Schedule không tìm thấy (lỗi ở Service)
-            // Trả về lỗi 400 Bad Request + thông báo lỗi
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    // --- API TẠO MỚI (QUAN TRỌNG NHẤT) ---
+    @PostMapping
+    public ResponseEntity<BookingResponseDTO> createBooking(@RequestBody BookingRequestDTO request) {
+        // 1. Gọi Service tạo booking
+        Booking newBooking = bookingService.createBooking(request);
+
+        // 2. Đóng gói vào DTO của bạn để trả về
+        BookingResponseDTO response = new BookingResponseDTO(
+                newBooking.getId(),             // Map ID
+                newBooking.getStatus(),         // Map Status
+                "Đặt lịch thành công! Vui lòng chờ xác nhận.", // Message thông báo
+                newBooking.getDateBooking(),    // Map Ngày
+                newBooking.getTimeStart()       // Map Giờ
+        );
+
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/patient/{patientId}")
+    public ResponseEntity<?> getHistory(@PathVariable Integer patientId) {
+        List<Booking> list = bookingService.getBookingsByPatientId(patientId);
+        // Trả về danh sách trực tiếp (Frontend sẽ nhận được mảng JSON)
+        return ResponseEntity.ok(list);
     }
 }

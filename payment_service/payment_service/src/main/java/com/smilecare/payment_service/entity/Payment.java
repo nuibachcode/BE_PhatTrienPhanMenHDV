@@ -1,32 +1,66 @@
 package com.smilecare.payment_service.entity;
-import jakarta.persistence.*;
 
-@Entity // 1. Báo cho JPA biết đây là 1 bảng
-// 2. Ánh xạ đến bảng tên 'payment'
-@Table(name = "payment")
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "payment") // Tên bảng trong XAMPP
 public class Payment {
 
-    @Id // 3. Đánh dấu đây là khóa chính
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // 4. ID này tự động tăng
-    private Integer id; // 5. Khớp với `id (int)`
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
-    private Long amount; // 6. Khớp với `amount (bigint)`
+    private Long amount;
 
+    private String method;
 
-    private String method; // Với biến 'method'
-    @Column(name = "transaction_code")
+    // --- SỬA QUAN TRỌNG 1 ---
+    // Trong XAMPP cột tên là 'transactionCode' (không phải snake_case)
+    @Column(name = "transactionCode")
     private String transactionCode;
-    private String note;
-    private String status;
-//EAGER: verbose
-    // --- Định nghĩa quan hệ ---
-    @ManyToOne(fetch = FetchType.EAGER) // 8. Nhiều Payment thuộc về 1 Booking
 
-    @JoinColumn(name = "booking_id") // 9. Thông qua cột khóa ngoại 'BookingId'
+    private String note;
+
+    private String status;
+
+    // Thêm 2 cột này vì trong ảnh XAMPP của bạn có
+    @Column(name = "createdAt")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updatedAt")
+    private LocalDateTime updatedAt;
+
+    // --- SỬA QUAN TRỌNG 2 ---
+    // Khóa ngoại trong XAMPP tên là 'bookingId'
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "bookingId")
     private Booking booking;
 
-    // --- Bắt buộc: Constructor rỗng ---
+    // --- Constructor rỗng ---
     public Payment() {
+    }
+
+    // --- Tự động cập nhật thời gian ---
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    // --- Getters và Setters ---
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public Long getAmount() {
@@ -35,14 +69,6 @@ public class Payment {
 
     public void setAmount(Long amount) {
         this.amount = amount;
-    }
-
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
     }
 
     public String getMethod() {
@@ -84,8 +110,20 @@ public class Payment {
     public void setBooking(Booking booking) {
         this.booking = booking;
     }
-// --- Getters và Setters ---
-    // (Bạn tự dùng IDE để sinh (generate)
-    // getter/setter cho TẤT CẢ các trường trên)
-    // ...
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

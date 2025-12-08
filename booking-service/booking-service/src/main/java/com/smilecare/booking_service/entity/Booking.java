@@ -2,122 +2,72 @@ package com.smilecare.booking_service.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.HashSet; // Import
-import java.util.Set; // Import
 
 @Entity
-@Table(name = "booking")
+@Table(name = "booking") // Khớp tên bảng trong XAMPP
 public class Booking {
 
-    // ... (id, status, description, user, schedule... giữ nguyên như cũ)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "date_booking") // Đã sửa ở bước trước
+    // Khớp cột 'dateBooking'
+    @Column(name = "dateBooking")
     private LocalDate dateBooking;
 
-    @Column(name = "time_start") // Đã sửa ở bước trước
-    private LocalTime timeStart;
-
+    @Column(name = "status")
     private String status;
+
+    @Column(name = "description")
     private String description;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+    // Khớp cột 'timeStart'
+    @Column(name = "timeStart")
+    private LocalTime timeStart;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "schedule_id")
-    private Schedule schedule;
+    // Khớp cột 'timeEnd'
+    @Column(name = "timeEnd")
+    private LocalTime timeEnd;
 
-    // --- SỬA CHỖ NÀY ---
-    // Bỏ @ManyToMany đi
-    // Thay bằng @OneToMany đến bảng Association
-    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL)
-    private Set<BookingServiceAssociation> services = new HashSet<>();
+    // Khớp cột 'patientId'
+    @Column(name = "patientId")
+    private Integer patientId;
 
-    // Getters/Setters
-    // ... (Hãy đảm bảo bạn đã tạo Getters/Setters cho "services")
+    // Khớp cột 'scheduleId'
+    @Column(name = "scheduleId")
+    private Integer scheduleId;
 
-    // --- Thêm hàm helper (tiện ích) ---
-    public void addService(Service service, int price) {
-        BookingServiceAssociation association = new BookingServiceAssociation();
-        association.setBooking(this);
-        association.setService(service);
-        association.setPriceAtBooking(price);
+    @Column(name = "createdAt")
+    private LocalDateTime createdAt;
 
-        // Cập nhật ID cho Khóa gộp
-        BookingServiceKey key = new BookingServiceKey();
-        key.setBookingId(this.getId()); // Cần ID của booking
-        key.setServiceId(service.getId()); // Cần ID của service
-        association.setId(key);
+    public Booking() {}
 
-        this.services.add(association);
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        // Mặc định status nếu null
+        if (status == null) status = "PENDING";
     }
 
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public LocalDate getDateBooking() {
-        return dateBooking;
-    }
-
-    public void setDateBooking(LocalDate dateBooking) {
-        this.dateBooking = dateBooking;
-    }
-
-    public LocalTime getTimeStart() {
-        return timeStart;
-    }
-
-    public void setTimeStart(LocalTime timeStart) {
-        this.timeStart = timeStart;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Schedule getSchedule() {
-        return schedule;
-    }
-
-    public void setSchedule(Schedule schedule) {
-        this.schedule = schedule;
-    }
-
-    public Set<BookingServiceAssociation> getServices() {
-        return services;
-    }
-
-    public void setServices(Set<BookingServiceAssociation> services) {
-        this.services = services;
-    }
+    // --- Getters & Setters ---
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
+    public LocalDate getDateBooking() { return dateBooking; }
+    public void setDateBooking(LocalDate dateBooking) { this.dateBooking = dateBooking; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public LocalTime getTimeStart() { return timeStart; }
+    public void setTimeStart(LocalTime timeStart) { this.timeStart = timeStart; }
+    public LocalTime getTimeEnd() { return timeEnd; }
+    public void setTimeEnd(LocalTime timeEnd) { this.timeEnd = timeEnd; }
+    public Integer getPatientId() { return patientId; }
+    public void setPatientId(Integer patientId) { this.patientId = patientId; }
+    public Integer getScheduleId() { return scheduleId; }
+    public void setScheduleId(Integer scheduleId) { this.scheduleId = scheduleId; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
