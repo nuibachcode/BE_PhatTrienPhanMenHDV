@@ -38,11 +38,11 @@ spring:
             - Path=/api/doctors/**
             - Path=/api/schedules/**
 
-        # --- ROUTE CHO DOCTOR (Nếu có) ---
+        # --- ROUTE CHO Service (Nếu có) ---
         - id: service
           uri: lb://service
           predicates:
-            - Path=/api/service/**
+            - Path=/api/services/**, /api/specialties/**, /api/crawler/**
 
 
       # --- CẤU HÌNH CORS (QUAN TRỌNG CHO FRONTEND) ---
