@@ -6,35 +6,27 @@ import java.time.LocalTime;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "schedule") // Khớp tên bảng trong XAMPP
+@Table(name = "schedule")
 public class Schedule {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // Khớp cột 'dateWork'
     @Column(name = "dateWork")
     private LocalDate dateWork;
 
-    // Khớp cột 'timeStart'
     @Column(name = "timeStart")
     private LocalTime timeStart;
 
-    // Khớp cột 'timeEnd'
     @Column(name = "timeEnd")
     private LocalTime timeEnd;
 
-    // Khớp cột 'maxPatient'
     @Column(name = "maxPatient")
     private Integer maxPatient;
 
     @Column(name = "description")
     private String description;
-
-    // Khớp cột 'doctorId'
-    @Column(name = "doctorId")
-    private Integer doctorId;
 
     @Column(name = "createdAt")
     private LocalDateTime createdAt;
@@ -42,10 +34,21 @@ public class Schedule {
     @Column(name = "updatedAt")
     private LocalDateTime updatedAt;
 
+    // --- 1. GIỮ NGUYÊN CỘT ID (Để lưu dữ liệu) ---
+    @Column(name = "doctorId")
+    private Integer doctorId;
+
+    // --- 2. THÊM MAPPING (Để lấy thông tin Bác sĩ) ---
+    // Join với bảng User thông qua cột doctorId
+    // insertable = false, updatable = false: Để tránh xung đột với cột Integer ở trên
+    @ManyToOne
+    @JoinColumn(name = "doctorId", insertable = false, updatable = false)
+    private User doctorInfo;
+
     public Schedule() {
     }
 
-    // --- Tự động điền ngày giờ (QUAN TRỌNG) ---
+    // --- Tự động điền ngày giờ ---
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -84,4 +87,8 @@ public class Schedule {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    // --- Getter & Setter cho Object User (Bác sĩ) ---
+    public User getDoctorInfo() { return doctorInfo; }
+    public void setDoctorInfo(User doctorInfo) { this.doctorInfo = doctorInfo; }
 }

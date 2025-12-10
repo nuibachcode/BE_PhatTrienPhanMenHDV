@@ -1,4 +1,3 @@
-
 package com.smilecare.booking_service.dto;
 
 import java.time.LocalDate;
@@ -10,8 +9,20 @@ public class BookingResponseDTO {
     private String message;
     private LocalDate dateBooking;
     private LocalTime timeStart;
+    private LocalTime timeEnd; // Thêm timeEnd cho đầy đủ
+    private String description;
 
-    // Constructor (Hàm khởi tạo để nạp dữ liệu nhanh)
+    // --- ⚠️ QUAN TRỌNG: 2 trường này để Payment Service lấy tên ---
+    // Dùng kiểu Object để hứng bất kỳ dữ liệu nào (Entity User, Doctor...)
+    private Object patientInfo;
+    private Object scheduleInfo;
+    // -----------------------------------------------------------
+
+    // 1. Constructor rỗng (Bắt buộc phải có để Service tạo đối tượng)
+    public BookingResponseDTO() {
+    }
+
+    // 2. Constructor đầy đủ (Nếu bạn muốn dùng)
     public BookingResponseDTO(Integer bookingId, String status, String message, LocalDate dateBooking, LocalTime timeStart) {
         this.bookingId = bookingId;
         this.status = status;
@@ -59,5 +70,38 @@ public class BookingResponseDTO {
 
     public void setTimeStart(LocalTime timeStart) {
         this.timeStart = timeStart;
+    }
+
+    public LocalTime getTimeEnd() {
+        return timeEnd;
+    }
+
+    public void setTimeEnd(LocalTime timeEnd) {
+        this.timeEnd = timeEnd;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    // --- Getter/Setter cho PatientInfo và ScheduleInfo (QUAN TRỌNG) ---
+    public Object getPatientInfo() {
+        return patientInfo;
+    }
+
+    public void setPatientInfo(Object patientInfo) {
+        this.patientInfo = patientInfo;
+    }
+
+    public Object getScheduleInfo() {
+        return scheduleInfo;
+    }
+
+    public void setScheduleInfo(Object scheduleInfo) {
+        this.scheduleInfo = scheduleInfo;
     }
 }

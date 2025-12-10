@@ -1,30 +1,29 @@
 package com.smilecare.booking_service.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore; // <--- 1. NHỚ IMPORT CÁI NÀY
 import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "service") // Khớp tên bảng XAMPP
+@Table(name = "service")
 public class Service {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Sửa: Thêm tự tăng ID
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // Sửa: Thêm cột này vì trong ảnh XAMPP có 'nameService'
     @Column(name = "nameService")
     private String nameService;
 
-    // Sửa: Tên cột trong XAMPP là 'price' (chữ p thường)
     @Column(name = "price")
     private Long price;
 
-    // Các cột khác (duration, description...) nếu cần thì thêm, không thì thôi.
-
-    // --- Liên kết ngược (Bidirectional) ---
-    // Cái này OK nếu bạn muốn từ Service tìm ngược lại các lần đặt
+    // --- SỬA QUAN TRỌNG: THÊM @JsonIgnore ---
+    // Để khi lấy thông tin Dịch vụ, nó KHÔNG cố gắng load danh sách các Booking cũ nữa.
+    // Giúp JSON gọn gàng và không bị lỗi đệ quy.
     @OneToMany(mappedBy = "service")
+    @JsonIgnore // <--- 2. THÊM DÒNG NÀY VÀO ĐÂY
     private Set<BookingServiceAssociation> bookings = new HashSet<>();
 
     public Service() {
