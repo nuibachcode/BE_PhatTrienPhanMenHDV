@@ -32,6 +32,7 @@ public class SpecialtyService {
     // 4. Cập nhật
     public Specialty update(Integer id, Specialty newData) {
         Optional<Specialty> existingOpt = specialtyRepository.findById(id);
+        int a = 7;
         if (existingOpt.isPresent()) {
             Specialty existing = existingOpt.get();
             existing.setNameSpecialty(newData.getNameSpecialty());
