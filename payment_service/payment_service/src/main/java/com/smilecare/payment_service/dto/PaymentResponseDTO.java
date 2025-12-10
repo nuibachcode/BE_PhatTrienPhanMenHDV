@@ -1,8 +1,12 @@
 package com.smilecare.payment_service.dto;
 
 import com.smilecare.payment_service.entity.Payment;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
+@Data // Tự sinh Getter, Setter, toString... cho gọn
+@NoArgsConstructor
 public class PaymentResponseDTO {
     private Integer id;
     private Long amount;
@@ -12,10 +16,10 @@ public class PaymentResponseDTO {
     private String note;
     private LocalDateTime createdAt;
 
-    // ⚠️ QUAN TRỌNG: Ở đây KHÔNG khai báo 'booking' hay 'bookingId'
-    // -> Kết quả trả về sẽ hoàn toàn ẩn thông tin này.
+    // ✅ QUAN TRỌNG: Giữ lại ID này để Frontend biết tiền này của Booking nào
+    private Integer bookingId;
 
-    // --- Constructor nhận vào Entity (Để Controller dùng) ---
+    // --- Constructor ---
     public PaymentResponseDTO(Payment payment) {
         this.id = payment.getId();
         this.amount = payment.getAmount();
@@ -24,27 +28,8 @@ public class PaymentResponseDTO {
         this.status = payment.getStatus();
         this.note = payment.getNote();
         this.createdAt = payment.getCreatedAt();
+
+        // Map ID từ Entity sang DTO
+        this.bookingId = payment.getBookingId();
     }
-
-    // --- Getters và Setters ---
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
-
-    public Long getAmount() { return amount; }
-    public void setAmount(Long amount) { this.amount = amount; }
-
-    public String getMethod() { return method; }
-    public void setMethod(String method) { this.method = method; }
-
-    public String getTransactionCode() { return transactionCode; }
-    public void setTransactionCode(String transactionCode) { this.transactionCode = transactionCode; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-
-    public String getNote() { return note; }
-    public void setNote(String note) { this.note = note; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
