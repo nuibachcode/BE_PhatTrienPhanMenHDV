@@ -1,21 +1,29 @@
 package com.smilecare.booking_service.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "user") // 1. Khớp tên bảng 'user' trong XAMPP
+@Table(name = "user") // Chuẩn tên bảng số ít
 public class User {
 
     @Id
     private Integer id;
 
-    // --- Constructor rỗng (Bắt buộc) ---
+    // --- BẮT BUỘC PHẢI CÓ CÁC CỘT NÀY ĐỂ HIỂN THỊ TÊN ---
+    @Column(name = "fullName")
+    private String fullName;
+
+    @Column(name = "phone")
+    private String phone;
+    // ----------------------------------------------------
+    @Column(name = "roleId")
+    private Integer roleId;
     public User() {
     }
 
-    // --- Constructor có tham số (Tiện khi cần gán ID nhanh) ---
     public User(Integer id) {
         this.id = id;
     }
@@ -28,4 +36,23 @@ public class User {
     public void setId(Integer id) {
         this.id = id;
     }
+
+    // Phải có Getter thì JSON mới xuất ra được
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+    public Integer getRoleId() { return roleId; }
+    public void setRoleId(Integer roleId) { this.roleId = roleId; }
 }

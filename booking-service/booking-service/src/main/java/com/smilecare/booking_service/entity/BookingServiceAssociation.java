@@ -1,28 +1,29 @@
 package com.smilecare.booking_service.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "bookingservice") // 1. Khớp tên bảng trong XAMPP (viết liền, không gạch dưới)
+@Table(name = "bookingservice") // 1. Khớp tên bảng trong XAMPP
 public class BookingServiceAssociation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id; // 2. Bảng này có ID riêng, không cần dùng khóa gộp (EmbeddedId)
+    private Integer id;
 
-    // --- Quan hệ với bảng Booking ---
+    // --- QUAN TRỌNG: THÊM @JsonIgnore ĐỂ TRÁNH LỖI VÒNG LẶP ---
     @ManyToOne
-    @JoinColumn(name = "bookingId") // 3. Khớp cột 'bookingId' trong ảnh XAMPP
+    @JoinColumn(name = "bookingId")
+    @JsonIgnore // <--- BẮT BUỘC PHẢI CÓ
     private Booking booking;
+    // -----------------------------------------------------------
 
-    // --- Quan hệ với bảng Service ---
     @ManyToOne
-    @JoinColumn(name = "serviceId") // 4. Khớp cột 'serviceId' trong ảnh XAMPP
+    @JoinColumn(name = "serviceId")
     private Service service;
 
-    // --- Giá tại thời điểm đặt ---
-    @Column(name = "priceAtBooking") // 5. Khớp cột 'priceAtBooking'
+    @Column(name = "priceAtBooking")
     private Long priceAtBooking;
 
     @Column(name = "createdAt")
@@ -31,11 +32,9 @@ public class BookingServiceAssociation {
     @Column(name = "updatedAt")
     private LocalDateTime updatedAt;
 
-    // --- Constructor rỗng ---
     public BookingServiceAssociation() {
     }
 
-    // --- Tự động lưu thời gian ---
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -48,51 +47,21 @@ public class BookingServiceAssociation {
     }
 
     // --- Getters & Setters ---
-    public Integer getId() {
-        return id;
-    }
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
 
-    public void setId(Integer id) {
-        this.id = id;
-    }
+    public Booking getBooking() { return booking; }
+    public void setBooking(Booking booking) { this.booking = booking; }
 
-    public Booking getBooking() {
-        return booking;
-    }
+    public Service getService() { return service; }
+    public void setService(Service service) { this.service = service; }
 
-    public void setBooking(Booking booking) {
-        this.booking = booking;
-    }
+    public Long getPriceAtBooking() { return priceAtBooking; }
+    public void setPriceAtBooking(Long priceAtBooking) { this.priceAtBooking = priceAtBooking; }
 
-    public Service getService() {
-        return service;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public void setService(Service service) {
-        this.service = service;
-    }
-
-    public Long getPriceAtBooking() {
-        return priceAtBooking;
-    }
-
-    public void setPriceAtBooking(Long priceAtBooking) {
-        this.priceAtBooking = priceAtBooking;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
