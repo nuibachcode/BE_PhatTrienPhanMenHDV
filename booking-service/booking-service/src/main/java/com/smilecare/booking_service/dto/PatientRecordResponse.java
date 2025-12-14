@@ -6,12 +6,12 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 
 @Data
-@AllArgsConstructor
+@AllArgsConstructor // <--- Bắt buộc có để fix lỗi hàm new()
 @NoArgsConstructor
 public class PatientRecordResponse {
-    private Integer id;          // ID Bệnh nhân
-    private String fullName;     // Họ tên đầy đủ
-    private String phoneNumber;  // Số điện thoại
-    private String address;      // Địa chỉ
-    private LocalDate lastVisit; // Ngày khám gần nhất
+    private Integer patientId;
+    private String patientName; // Tương ứng với fullName
+    private String phone;
+    private String address;
+    private LocalDate lastVisitDate;
 }

@@ -181,4 +181,27 @@ public class UserService {
         }
     }
 
+    // Trong file UserService.java
+    public List<UserResponseDTO> getUsersByRoleId(Integer roleId) {
+        List<User> users = userRepository.findByRoleId(roleId);
+
+        return users.stream().map(user -> {
+            UserResponseDTO dto = new UserResponseDTO();
+            dto.setId(user.getId());
+            dto.setFullName(user.getFullName());
+            dto.setPhone(user.getPhone());
+            dto.setEmail(user.getEmail());
+            dto.setAddress(user.getAddress());
+
+            // --- SỬA LỖI TẠI ĐÂY ---
+            // Thay vì user.getRoleId(), hãy gọi qua object Role
+            if (user.getRole() != null) {
+                dto.setRoleId(user.getRole().getId());
+                // Nếu UserResponseDTO có trường roleName thì set luôn:
+                // dto.setRoleName(user.getRole().getRoleName());
+            }
+
+            return dto;
+        }).collect(Collectors.toList());
+    }
 }

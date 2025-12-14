@@ -5,14 +5,22 @@ import com.smilecare.payment_service.dto.ApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
-// SỬA: CHỈ DÙNG 'name' VÀ XÓA 'url'
-// Tên service phải khớp với tên Booking Service đăng ký trong Eureka (Ví dụ: booking-service)
-@FeignClient(name = "booking-service")
+import java.util.Map;
+
+// --- QUAN TRỌNG: THÊM url="http://localhost:8082" VÀO ---
+// Vì chưa có Eureka Server, ta phải chỉ đích danh địa chỉ nhà của Booking Service
+@FeignClient(name = "booking-service", url = "http://localhost:8082")
 public interface BookingClient {
 
-    // LƯU Ý: Endpoint phải là đường dẫn nội bộ của Booking Service (ví dụ: /api/bookings/{id})
-    // Không cần /api/bookings ở đây nữa vì nó đã được chỉ định ở @FeignClient
-    @GetMapping("/api/bookings/{id}") // Giữ nguyên đường dẫn đầy đủ của Booking Service
+    @GetMapping("/api/bookings/{id}")
     ApiResponse<BookingDTO> getBookingById(@PathVariable("id") Integer id);
+
+    @PutMapping("/api/bookings/{id}")
+    ApiResponse<String> updateBookingStatus(
+            @PathVariable("id") Integer id,
+            @RequestBody Map<String, String> body
+    );
 }

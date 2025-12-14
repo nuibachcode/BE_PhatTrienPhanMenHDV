@@ -10,18 +10,19 @@ import java.util.List;
 public interface BookingRepository extends JpaRepository<Booking, Integer> {
 
     // 1. Tìm lịch sử đặt lịch theo Patient ID (Sắp xếp mới nhất lên đầu)
+    // Trường patientId là Integer -> OK
     List<Booking> findByPatientIdOrderByDateBookingDesc(Integer patientId);
 
     // 2. Tìm lịch khám cho Bác sĩ (Dashboard Doctor)
-    @Query("SELECT b FROM Booking b WHERE b.scheduleInfo.doctorId = :doctorId AND b.dateBooking = :date")
-    List<Booking> findByDoctorAndDate(@Param("doctorId") Integer doctorId, @Param("date") LocalDate date);
+    // Tối ưu: Tìm trực tiếp theo doctorId trong bảng Booking (vì ta đã thêm cột này vào Entity rồi)
+    // Không cần join sang scheduleInfo nữa cho nặng
+    List<Booking> findByDoctorIdAndDateBooking(Integer doctorId, LocalDate dateBooking);
 
     // 3. Lấy danh sách bệnh nhân của Bác sĩ (Hồ sơ bệnh nhân)
-    @Query("SELECT b.patientInfo, MAX(b.dateBooking) " +
+    // SỬA: Chỉ lấy patientId, KHÔNG JOIN bảng User
+    @Query("SELECT b.patientId, MAX(b.dateBooking) " +
             "FROM Booking b " +
-            "JOIN b.patientInfo u " +
-            "JOIN b.scheduleInfo s " +
-            "WHERE s.doctorId = :doctorId " +
+            "WHERE b.doctorId = :doctorId " +
             "GROUP BY b.patientId")
     List<Object[]> findUniquePatientsByDoctor(@Param("doctorId") Integer doctorId);
 }

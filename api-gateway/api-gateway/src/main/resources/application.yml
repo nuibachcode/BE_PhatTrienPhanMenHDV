@@ -7,58 +7,43 @@ spring:
   cloud:
     gateway:
       routes:
-        # --- ROUTE CHO BOOKING ---
+        # --- BOOKING ---
         - id: booking-service
           uri: lb://booking-service
           predicates:
             - Path=/api/bookings/**,/api/schedules/**
 
-        # --- ROUTE CHO PAYMENT ---
+        # --- PAYMENT ---
         - id: payment-service
           uri: lb://payment-service
           predicates:
             - Path=/api/payments/**, /api/admin/**
 
-        # --- ROUTE CHO USER ---
+        # --- USER ---
         - id: user-service
           uri: lb://user-service
           predicates:
             - Path=/api/users/**
 
-        # --- ROUTE CHO CATALOG (Nếu có) ---
-        - id: catalog-service
-          uri: lb://catalog-service
-          predicates:
-            - Path=/api/catalog/**
-
-        # --- ROUTE CHO DOCTOR (Nếu có) ---
-        - id: doctor-service
-          uri: lb://doctor-service
-          predicates:
-            - Path=/api/doctors/**
-            - Path=/api/schedules/**
-
-        # --- ROUTE CHO Service (Nếu có) ---
+        # --- Service ---
         - id: service
           uri: lb://service
           predicates:
-            - Path=/api/services/**, /api/specialties/**, /api/crawler/**
+            - Path=/api/services/**, /api/specialties/**
 
-
-      # --- CẤU HÌNH CORS (QUAN TRỌNG CHO FRONTEND) ---
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOrigins: "*"   # <-- ĐÃ SỬA: Cho phép mọi nguồn (Web/App) gọi vào
+            allowedOrigins: "*"
             allowedMethods:
               - GET
               - POST
               - PUT
               - DELETE
               - OPTIONS
-            allowedHeaders: "*"   # <-- ĐÃ SỬA: Cho phép mọi header
+            allowedHeaders: "*"
 
-# CẤU HÌNH KẾT NỐI EUREKA (BROKER)
+# KẾT NỐI EUREKA
 eureka:
   client:
     serviceUrl:

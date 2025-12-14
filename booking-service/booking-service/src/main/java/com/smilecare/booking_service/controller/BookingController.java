@@ -2,10 +2,6 @@ package com.smilecare.booking_service.controller;
 
 import com.smilecare.booking_service.dto.*;
 import com.smilecare.booking_service.entity.Booking;
-import com.smilecare.booking_service.entity.DoctorInfo; // Import Entity DoctorInfo
-import com.smilecare.booking_service.entity.Service;
-import com.smilecare.booking_service.repository.DoctorInfoRepository; // Import Repo DoctorInfo
-import com.smilecare.booking_service.repository.ServiceRepository;
 import com.smilecare.booking_service.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -20,24 +16,17 @@ import java.util.Map;
 public class BookingController {
 
     private final BookingService bookingService;
-    private final ServiceRepository serviceRepository;
-    private final DoctorInfoRepository doctorInfoRepository; // Sử dụng Repo này để lấy Bác sĩ + Chuyên khoa
 
-    // --- 1. API LẤY DANH SÁCH (RESOURCE) ---
-
-    // Đổi tên path để tránh trùng với /{id} gây lỗi 400
     @GetMapping("/get-services")
-    public ApiResponse<List<Service>> getAllServices() {
-        return ApiResponse.success(serviceRepository.findAll(), "Lấy danh sách dịch vụ thành công");
+    public ApiResponse<List<ServiceDTO>> getAllServices() {
+        // Dùng hàm static success mới
+        return ApiResponse.success(bookingService.getAllServicesFromRemote(), "Lấy danh sách dịch vụ thành công");
     }
 
     @GetMapping("/get-doctors")
-    public ApiResponse<List<DoctorInfo>> getAllDoctors() {
-        // Trả về danh sách DoctorInfo (có chứa specialtyId và User info)
-        return ApiResponse.success(doctorInfoRepository.findAll(), "Lấy danh sách bác sĩ thành công");
+    public ApiResponse<List<DoctorDTO>> getAllDoctors() {
+        return ApiResponse.success(bookingService.getAllDoctorsFromRemote(), "Lấy danh sách bác sĩ thành công");
     }
-
-    // --- 2. CÁC API NGHIỆP VỤ BOOKING (GIỮ NGUYÊN) ---
 
     @GetMapping
     public ApiResponse<List<Booking>> getAllBookings() {
@@ -46,17 +35,17 @@ public class BookingController {
 
     @GetMapping("/{id}")
     public ApiResponse<BookingResponseDTO> getBookingById(@PathVariable Integer id) {
-        return ApiResponse.success(bookingService.getBookingById(id), "Thành công");
+        BookingResponseDTO res = bookingService.getBookingById(id);
+        if (res != null) return ApiResponse.success(res, "Thành công");
+        return ApiResponse.error(1, "Không tìm thấy booking");
     }
 
     @PostMapping
     public ApiResponse<BookingResponseDTO> createBooking(@RequestBody BookingRequestDTO request) {
         try {
-            Booking newBooking = bookingService.createBooking(request);
-            BookingResponseDTO response = new BookingResponseDTO();
-            response.setBookingId(newBooking.getId());
-            return ApiResponse.success(response, "Đặt lịch thành công");
+            return ApiResponse.success(bookingService.createBooking(request), "Đặt lịch thành công");
         } catch (Exception e) {
+            e.printStackTrace();
             return ApiResponse.error(1, "Lỗi: " + e.getMessage());
         }
     }
@@ -66,10 +55,30 @@ public class BookingController {
         return ApiResponse.success(bookingService.getHistoryByPatientId(patientId), "Thành công");
     }
 
+    // Trong BookingController.java, tìm và thay thế hàm updateBookingStatus
     @PutMapping("/{id}")
     public ApiResponse<String> updateBookingStatus(@PathVariable Integer id, @RequestBody Map<String, String> body) {
-        bookingService.updateStatus(id, body.get("status"));
-        return ApiResponse.success("OK", "Cập nhật thành công");
+        try {
+            String newStatus = body.get("status");
+
+            // Log báo hiệu đã nhận request
+            System.out.println(">>> [BOOKING-CONTROLLER] Nhận yêu cầu UPDATE ID " + id + " -> " + newStatus);
+
+            boolean ok = bookingService.updateStatus(id, newStatus);
+
+            // Log báo hiệu xử lý thành công
+            System.out.println(">>> [BOOKING-CONTROLLER] Xử lý Booking ID " + id + ": " + (ok ? "THÀNH CÔNG" : "THẤT BẠI"));
+
+            return ok ? ApiResponse.success("OK", "Cập nhật thành công") : ApiResponse.error(1, "Không tìm thấy booking hoặc thất bại");
+
+        } catch (Exception e) {
+            // BẮT LỖI 500 VÀ IN STACK TRACE ĐỂ TÌM NGUYÊN NHÂN
+            System.err.println(">>> [BOOKING-CONTROLLER ERROR] Lỗi 500 xảy ra khi update status Booking ID: " + id);
+            e.printStackTrace();
+
+            // Trả về 500 để Payment Service biết
+            return ApiResponse.error(500, "Lỗi Server nội bộ khi cập nhật trạng thái: " + e.getMessage());
+        }
     }
 
     @GetMapping("/doctor-schedule")
@@ -79,10 +88,6 @@ public class BookingController {
 
     @GetMapping("/doctor-patients")
     public ApiResponse<List<PatientRecordResponse>> getDoctorPatients(@RequestParam Integer doctorId) {
-        try {
-            return ApiResponse.success(bookingService.getPatientsForDoctor(doctorId), "Thành công");
-        } catch (Exception e) {
-            return ApiResponse.error(1, "Lỗi: " + e.getMessage());
-        }
+        return ApiResponse.success(bookingService.getPatientsForDoctor(doctorId), "Thành công");
     }
 }

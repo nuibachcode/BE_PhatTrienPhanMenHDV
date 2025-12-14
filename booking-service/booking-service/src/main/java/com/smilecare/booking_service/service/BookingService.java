@@ -1,17 +1,15 @@
 package com.smilecare.booking_service.service;
 
-import com.smilecare.booking_service.dto.BookingRequestDTO;
-import com.smilecare.booking_service.dto.BookingHistoryResponse;
-import com.smilecare.booking_service.dto.BookingResponseDTO;
-import com.smilecare.booking_service.dto.PatientRecordResponse;
+import com.smilecare.booking_service.client.ServiceClient;
+import com.smilecare.booking_service.client.UserClient;
+import com.smilecare.booking_service.dto.*;
 import com.smilecare.booking_service.entity.Booking;
 import com.smilecare.booking_service.entity.BookingServiceAssociation;
-import com.smilecare.booking_service.entity.Service;
-import com.smilecare.booking_service.entity.User;
 import com.smilecare.booking_service.repository.BookingRepository;
 import com.smilecare.booking_service.repository.BookingServiceRepository;
-import com.smilecare.booking_service.repository.ServiceRepository;
+import com.smilecare.booking_service.repository.ScheduleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -19,42 +17,33 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@org.springframework.stereotype.Service
+@Service
 public class BookingService {
 
     @Autowired
     private BookingRepository bookingRepository;
-
     @Autowired
     private BookingServiceRepository bookingServiceRepository;
-
     @Autowired
-    private ServiceRepository serviceRepository;
+    private ScheduleRepository scheduleRepository;
+    @Autowired
+    private ServiceClient serviceClient;
+    @Autowired
+    private UserClient userClient;
 
-    // --- 1. LẤY TẤT CẢ ---
+
+    // --- CÁC HÀM GET CƠ BẢN ---
     public List<Booking> getAllBookings() {
         return bookingRepository.findAll();
     }
 
-    // --- 2. LẤY CHI TIẾT ---
     public BookingResponseDTO getBookingById(Integer id) {
         Booking booking = bookingRepository.findById(id).orElse(null);
         if (booking == null) return null;
-
-        BookingResponseDTO dto = new BookingResponseDTO();
-        dto.setBookingId(booking.getId());
-        dto.setDateBooking(booking.getDateBooking());
-        dto.setTimeStart(booking.getTimeStart());
-        dto.setTimeEnd(booking.getTimeEnd());
-        dto.setStatus(booking.getStatus());
-        dto.setDescription(booking.getDescription());
-        dto.setPatientInfo(booking.getPatientInfo());
-        dto.setScheduleInfo(booking.getScheduleInfo());
-
-        return dto;
+        return mapToBookingResponse(booking);
     }
 
-    // --- 3. CẬP NHẬT TRẠNG THÁI ---
+    @Transactional
     public boolean updateStatus(Integer id, String newStatus) {
         return bookingRepository.findById(id).map(booking -> {
             booking.setStatus(newStatus);
@@ -63,59 +52,59 @@ public class BookingService {
         }).orElse(false);
     }
 
-    // --- 4. TẠO MỚI BOOKING (ĐÃ UPDATE ĐỂ LƯU LIST DỊCH VỤ) ---
     @Transactional
-    public Booking createBooking(BookingRequestDTO request) {
-        // B1: Tạo Booking chính
+    public BookingResponseDTO createBooking(BookingRequestDTO request) {
+        // 1. Map dữ liệu và Lưu Booking
         Booking newBooking = new Booking();
         newBooking.setDateBooking(request.getDateBooking());
         newBooking.setTimeStart(request.getTimeStart());
         newBooking.setTimeEnd(request.getTimeEnd());
         newBooking.setPatientId(request.getPatientId());
+        newBooking.setDoctorId(request.getDoctorId());
         newBooking.setScheduleId(request.getScheduleId());
         newBooking.setDescription(request.getDescription());
         newBooking.setStatus("PENDING");
 
         Booking savedBooking = bookingRepository.save(newBooking);
 
-        // B2: Lưu danh sách dịch vụ đi kèm (Duyệt qua List<Integer> serviceIds)
+        // 2. Lưu các dịch vụ (BookingServiceAssociation)
         if (request.getServiceIds() != null && !request.getServiceIds().isEmpty()) {
             for (Integer serviceId : request.getServiceIds()) {
-                // Tìm thông tin dịch vụ để lấy giá
-                Service service = serviceRepository.findById(serviceId)
-                        .orElseThrow(() -> new RuntimeException("Không tìm thấy Service ID: " + serviceId));
+                Double price = 0.0;
+                try {
+                    ApiResponse<ServiceDTO> response = serviceClient.getServiceById(serviceId);
+                    if (response.getDT() != null) {
+                        price = response.getDT().getPrice().doubleValue();
+                    }
+                } catch (Exception e) {
+                    System.err.println("Lỗi Service Client: " + e.getMessage());
+                }
 
-                // Tạo bản ghi trong bảng trung gian
                 BookingServiceAssociation association = new BookingServiceAssociation();
                 association.setBooking(savedBooking);
-                association.setService(service);
-                // Lưu giá tại thời điểm đặt (Snapshot giá)
-                association.setPriceAtBooking(service.getPrice());
-
+                association.setServiceId(serviceId);
+                association.setPriceAtBooking(price.longValue());
                 bookingServiceRepository.save(association);
             }
         }
-        return savedBooking;
+
+        // --- BƯỚC 3: TẠO RESPONSE VÀ BỒI THÊM SCHEDULE INFO ---
+
+        // Tạo response cơ bản (lúc này scheduleInfo đang null)
+        BookingResponseDTO finalResponse = mapToBookingResponse(savedBooking);
+
+        // Tự tay lấy Schedule từ DB và nhét vào Response
+        if (request.getScheduleId() != null) {
+            scheduleRepository.findById(request.getScheduleId())
+                    .ifPresent(schedule -> {
+                        finalResponse.setScheduleInfo(schedule);
+                    });
+        }
+
+        return finalResponse;
     }
 
-    // --- 5. LẤY LỊCH KHÁM CHO BÁC SĨ ---
-    public List<BookingResponseDTO> getBookingsByDoctorAndDate(Integer doctorId, LocalDate date) {
-        List<Booking> bookings = bookingRepository.findByDoctorAndDate(doctorId, date);
-        return bookings.stream().map(b -> {
-            BookingResponseDTO dto = new BookingResponseDTO();
-            dto.setBookingId(b.getId());
-            dto.setDateBooking(b.getDateBooking());
-            dto.setTimeStart(b.getTimeStart());
-            dto.setTimeEnd(b.getTimeEnd());
-            dto.setStatus(b.getStatus());
-            dto.setDescription(b.getDescription());
-            dto.setPatientInfo(b.getPatientInfo());
-            dto.setScheduleInfo(b.getScheduleInfo());
-            return dto;
-        }).collect(Collectors.toList());
-    }
-
-    // --- 6. LẤY LỊCH SỬ KHÁM (Cho Bệnh nhân) ---
+    // --- LỊCH SỬ KHÁM (SỬA Constructor và .getDT()) ---
     public List<BookingHistoryResponse> getHistoryByPatientId(Integer patientId) {
         List<Booking> bookings = bookingRepository.findByPatientIdOrderByDateBookingDesc(patientId);
 
@@ -124,29 +113,33 @@ public class BookingService {
             List<String> serviceNames = new ArrayList<>();
 
             if (booking.getBookingServiceAssociations() != null) {
-                for (var item : booking.getBookingServiceAssociations()) {
-                    // Logic tính tiền an toàn (tránh null)
-                    Number price = item.getPriceAtBooking();
-                    if (price == null && item.getService() != null) {
-                        price = item.getService().getPrice();
-                    }
-                    if (price != null) {
-                        total += price.longValue();
-                    }
-
-                    if (item.getService() != null) {
-                        serviceNames.add(item.getService().getNameService());
+                for (BookingServiceAssociation item : booking.getBookingServiceAssociations()) {
+                    if (item.getPriceAtBooking() != null) total += item.getPriceAtBooking();
+                    try {
+                        ApiResponse<ServiceDTO> sRes = serviceClient.getServiceById(item.getServiceId());
+                        // SỬA: .getDT()
+                        if (sRes.getDT() != null) {
+                            serviceNames.add(sRes.getDT().getNameService());
+                        }
+                    } catch (Exception e) {
+                        serviceNames.add("Dịch vụ " + item.getServiceId());
                     }
                 }
             }
 
-            String doctorName = "Đang cập nhật";
-            if (booking.getScheduleInfo() != null && booking.getScheduleInfo().getDoctorInfo() != null) {
-                doctorName = booking.getScheduleInfo().getDoctorInfo().getFullName();
-            } else if (booking.getScheduleInfo() != null) {
-                doctorName = "Bác sĩ (Mã " + booking.getScheduleInfo().getDoctorId() + ")";
+            String doctorName = "Đang tải...";
+            try {
+                ApiResponse<DoctorDTO> uRes = userClient.getUserById(booking.getDoctorId());
+                // SỬA: .getDT()
+                if (uRes.getDT() != null) {
+                    doctorName = uRes.getDT().getFullName();
+                }
+            } catch (Exception e) {
+                doctorName = "Bác sĩ #" + booking.getDoctorId();
             }
 
+            // SỬA: Constructor phải khớp thứ tự file DTO bạn gửi
+            // id, dateBooking, timeStart, timeEnd, status, description, doctorName, totalAmount, serviceNames
             return new BookingHistoryResponse(
                     booking.getId(),
                     booking.getDateBooking(),
@@ -161,25 +154,78 @@ public class BookingService {
         }).collect(Collectors.toList());
     }
 
-    // --- 7. LẤY DANH SÁCH BỆNH NHÂN (Hồ sơ bệnh nhân) ---
+    // --- CÁC HÀM KHÁC (Cũng sửa .getDT()) ---
+    public List<BookingResponseDTO> getBookingsByDoctorAndDate(Integer doctorId, LocalDate date) {
+        List<Booking> bookings = bookingRepository.findByDoctorIdAndDateBooking(doctorId, date);
+        return bookings.stream().map(this::mapToBookingResponse).collect(Collectors.toList());
+    }
+
+    // Hàm này cho BookingController gọi để lấy danh sách
+    public List<ServiceDTO> getAllServicesFromRemote() {
+        // SỬA: .getDT()
+        return serviceClient.getAllServices().getDT();
+    }
+
+    public List<DoctorDTO> getAllDoctorsFromRemote() {
+        // SỬA: .getDT()
+        return userClient.getAllDoctors().getDT();
+    }
+
+    // Hàm lấy bệnh nhân cho bác sĩ (Logic cũ)
     public List<PatientRecordResponse> getPatientsForDoctor(Integer doctorId) {
         List<Object[]> results = bookingRepository.findUniquePatientsByDoctor(doctorId);
         List<PatientRecordResponse> responseList = new ArrayList<>();
-
         for (Object[] row : results) {
-            User user = (User) row[0];
+            Integer patientId = (Integer) row[0];
             LocalDate lastVisit = (LocalDate) row[1];
-
-            if (user != null) {
-                responseList.add(new PatientRecordResponse(
-                        user.getId(),
-                        user.getFullName(),
-                        user.getPhone(),
-                        user.getAddress(),
-                        lastVisit
-                ));
-            }
+            try {
+                ApiResponse<DoctorDTO> userRes = userClient.getUserById(patientId);
+                // SỬA: .getDT()
+                if (userRes.getDT() != null) {
+                    DoctorDTO u = userRes.getDT();
+                    // Lưu ý: Constructor PatientRecordResponse phải có @AllArgsConstructor
+                    responseList.add(new PatientRecordResponse(
+                            patientId, u.getFullName(), u.getPhone(), u.getAddress(), lastVisit
+                    ));
+                }
+            } catch (Exception e) {}
         }
         return responseList;
+    }
+
+    // --- 6. HÀM MAPPER (SỬA LẠI ĐOẠN NÀY ĐỂ LẤY FULL INFO) ---
+    private BookingResponseDTO mapToBookingResponse(Booking booking) {
+        BookingResponseDTO dto = new BookingResponseDTO();
+
+        // 1. Map thông tin cơ bản
+        dto.setBookingId(booking.getId());
+        dto.setDateBooking(booking.getDateBooking());
+        dto.setStatus(booking.getStatus());
+        dto.setDescription(booking.getDescription());
+        dto.setTimeStart(booking.getTimeStart());
+        dto.setTimeEnd(booking.getTimeEnd());
+
+        // 2. Map thông tin SCHEDULE (Lấy từ quan hệ Entity JPA)
+        // Vì trong Entity Booking bạn đã map @ManyToOne Schedule scheduleInfo
+        if (booking.getScheduleInfo() != null) {
+            dto.setScheduleInfo(booking.getScheduleInfo());
+        }
+
+        // 3. Map thông tin BỆNH NHÂN (Gọi sang User Service)
+        if (booking.getPatientId() != null) {
+            try {
+                // Gọi Feign Client sang User Service (Port 8087)
+                ApiResponse<DoctorDTO> userRes = userClient.getUserById(booking.getPatientId());
+                // Check kỹ: Khác null và getDT khác null
+                if (userRes != null && userRes.getDT() != null) {
+                    dto.setPatientInfo(userRes.getDT());
+                }
+            } catch (Exception e) {
+                // Nếu lỗi kết nối thì set thông báo lỗi nhẹ
+                dto.setPatientInfo("Lỗi tải thông tin bệnh nhân ID: " + booking.getPatientId());
+            }
+        }
+
+        return dto;
     }
 }

@@ -29,6 +29,24 @@ public class UserController {
 
     // --- CÁC API CHO USER MANAGEMENT (Admin Page) ---
 
+    // API lấy danh sách bác sĩ (Booking Service gọi cái này)
+    @GetMapping("/doctors")
+    public ResponseEntity<ApiResponse<List<UserResponseDTO>>> getListDoctors() {
+
+        Integer doctorRoleId = 2;
+
+        // Gọi service lấy list
+        List<UserResponseDTO> listDoctors = userService.getUsersByRoleId(doctorRoleId);
+
+        // Đóng gói vào ApiResponse
+        ApiResponse<List<UserResponseDTO>> response = new ApiResponse<>();
+        response.setEM("Lấy danh sách bác sĩ thành công");
+        response.setEC(0);
+        response.setDT(listDoctors);
+
+        return ResponseEntity.ok(response);
+    }
+
     // 1. Lấy tất cả user (GET /api/users)
     @GetMapping
     public ResponseEntity<ApiResponse<List<UserResponseDTO>>> getAll() {

@@ -1,7 +1,10 @@
 package com.smilecare.booking_service.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import lombok.Data;
+import lombok.ToString;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -9,6 +12,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "booking")
+@Data
 public class Booking {
 
     @Id
@@ -36,35 +40,33 @@ public class Booking {
     @Column(name = "updatedAt")
     private LocalDateTime updatedAt;
 
-    // --- 1. GIỮ NGUYÊN ID ĐỂ GHI DỮ LIỆU (WRITE) ---
+    // --- FOREIGN KEYS (LƯU ID) ---
+
     @Column(name = "patientId")
     private Integer patientId;
+
+    @Column(name = "doctorId")
+    private Integer doctorId;
 
     @Column(name = "scheduleId")
     private Integer scheduleId;
 
-    // --- 2. THÊM MAPPING ĐỂ ĐỌC DỮ LIỆU (READ-ONLY) ---
-    // Hibernate sẽ tự động JOIN sang bảng User để lấy tên bệnh nhân
-    @ManyToOne
-    @JoinColumn(name = "patientId", insertable = false, updatable = false)
-    private User patientInfo;
+    // --- RELATIONSHIPS (QUAN HỆ NỘI BỘ) ---
 
-    // Hibernate sẽ tự động JOIN sang bảng Schedule (từ đó lấy Bác sĩ)
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scheduleId", insertable = false, updatable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Schedule scheduleInfo;
 
-    // ----------------------------------------------------
-
     @OneToMany(mappedBy = "booking")
-//    @JsonIgnore
+    @ToString.Exclude
     private List<BookingServiceAssociation> bookingServiceAssociations;
 
-    public Booking() {}
 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
         if (status == null) status = "PENDING";
     }
 
@@ -73,49 +75,5 @@ public class Booking {
         updatedAt = LocalDateTime.now();
     }
 
-    // --- Getters & Setters ---
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
 
-    public LocalDate getDateBooking() { return dateBooking; }
-    public void setDateBooking(LocalDate dateBooking) { this.dateBooking = dateBooking; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-
-    public LocalTime getTimeStart() { return timeStart; }
-    public void setTimeStart(LocalTime timeStart) { this.timeStart = timeStart; }
-
-    public LocalTime getTimeEnd() { return timeEnd; }
-    public void setTimeEnd(LocalTime timeEnd) { this.timeEnd = timeEnd; }
-
-    public Integer getPatientId() { return patientId; }
-    public void setPatientId(Integer patientId) { this.patientId = patientId; }
-
-    public Integer getScheduleId() { return scheduleId; }
-    public void setScheduleId(Integer scheduleId) { this.scheduleId = scheduleId; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-
-    public List<BookingServiceAssociation> getBookingServiceAssociations() {
-        return bookingServiceAssociations;
-    }
-
-    public void setBookingServiceAssociations(List<BookingServiceAssociation> bookingServiceAssociations) {
-        this.bookingServiceAssociations = bookingServiceAssociations;
-    }
-
-    // --- GETTER/SETTER CHO 2 BIẾN MỚI ---
-    public User getPatientInfo() { return patientInfo; }
-    public void setPatientInfo(User patientInfo) { this.patientInfo = patientInfo; }
-
-    public Schedule getScheduleInfo() { return scheduleInfo; }
-    public void setScheduleInfo(Schedule scheduleInfo) { this.scheduleInfo = scheduleInfo; }
 }

@@ -8,23 +8,23 @@ import com.smilecare.payment_service.entity.Payment;
 import com.smilecare.payment_service.repository.PaymentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class PaymentService {
 
-    private final PaymentRepository paymentRepository;
-
-    // --- THAY THẾ: Dùng Client thay vì Repository ---
-    private final BookingClient bookingClient;
+    @Autowired
+    private PaymentRepository paymentRepository;
 
     @Autowired
-    public PaymentService(PaymentRepository paymentRepository, BookingClient bookingClient) {
-        this.paymentRepository = paymentRepository;
-        this.bookingClient = bookingClient;
-    }
+    private BookingClient bookingClient;
 
     public List<Payment> getAllPayments() {
         return paymentRepository.findAll();
@@ -34,49 +34,60 @@ public class PaymentService {
         return paymentRepository.findById(id);
     }
 
+    // --- HÀM NÀY ĐÃ SỬA LỖI ---
+    public Payment updatePaymentStatus(Integer id, String status) {
+        // SỬA LẠI: Dùng paymentRepository thay vì paymentService
+        Payment payment = paymentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
+
+        payment.setStatus(status);
+        return paymentRepository.save(payment);
+    }
+
+    @Transactional
     public Payment createPayment(PaymentRequestDTO request) {
-        // --- 1. SỬA ĐOẠN CHECK TỒN TẠI (Dùng API) ---
-        // Gọi sang Booking Service để kiểm tra xem ID có thật không
+        System.out.println(">>> [SERVICE] Bắt đầu tạo Payment...");
+
+        // 1. Kiểm tra Booking tồn tại
         try {
             ApiResponse<BookingDTO> response = bookingClient.getBookingById(request.getBookingId());
-            // Kiểm tra nếu API trả về null hoặc Data (DT) bị null -> Nghĩa là không có booking này
             if (response == null || response.getDT() == null) {
-                throw new RuntimeException("Booking ID không tồn tại hoặc Service lỗi");
+                throw new RuntimeException("Booking ID " + request.getBookingId() + " không tồn tại!");
             }
         } catch (Exception e) {
-            // Nếu Service bên kia sập hoặc trả về 404
-            throw new RuntimeException("Không tìm thấy Booking ID: " + request.getBookingId());
+            System.out.println(">>> [ERROR] Lỗi gọi Booking Service: " + e.getMessage());
+            throw new RuntimeException("Lỗi kết nối hoặc không tìm thấy Booking ID");
         }
-        // --------------------------------------------
 
+        // 2. Tạo và Lưu Payment
         Payment newPayment = new Payment();
-
-        // 2. Set các thông tin cơ bản
+        newPayment.setBookingId(request.getBookingId());
         newPayment.setAmount(request.getAmount());
         newPayment.setMethod(request.getMethod());
         newPayment.setNote(request.getNote());
+        newPayment.setStatus("SUCCESS");
+        newPayment.setTransactionCode("TXN-" + UUID.randomUUID());
+        newPayment.setCreatedAt(LocalDateTime.now());
+        newPayment.setUpdatedAt(LocalDateTime.now());
 
-        // Sinh mã giao dịch
-        if (request.getTransactionCode() != null && !request.getTransactionCode().isEmpty()) {
-            newPayment.setTransactionCode(request.getTransactionCode());
-        } else {
-            newPayment.setTransactionCode("TXN-" + System.currentTimeMillis());
+        Payment savedPayment = paymentRepository.save(newPayment);
+        System.out.println(">>> [SERVICE] Đã lưu Payment ID: " + savedPayment.getId());
+
+        // 3. Gọi Update Booking Status
+        try {
+            System.out.println(">>> [SERVICE] Đang gọi Booking để update trạng thái...");
+
+            Map<String, String> body = new HashMap<>();
+            body.put("status", "CONFIRMED");
+
+            bookingClient.updateBookingStatus(request.getBookingId(), body);
+
+            System.out.println(">>> [SERVICE] Update Booking THÀNH CÔNG!");
+        } catch (Exception e) {
+            System.err.println(">>> [WARNING] Thanh toán OK nhưng lỗi update Booking: " + e.getMessage());
+            e.printStackTrace();
         }
 
-        // --- GIỮ NGUYÊN STATUS SUCCESS ---
-        newPayment.setStatus("SUCCESS");
-        // ---------------------------------
-
-        // 3. Set Booking ID
-        newPayment.setBookingId(request.getBookingId());
-
-        return paymentRepository.save(newPayment);
-    }
-
-    public Payment updatePaymentStatus(Integer id, String status) {
-        Payment payment = paymentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Payment ID: " + id));
-        payment.setStatus(status);
-        return paymentRepository.save(payment);
+        return savedPayment;
     }
 }

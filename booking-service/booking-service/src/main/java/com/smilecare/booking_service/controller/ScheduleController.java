@@ -24,6 +24,7 @@ public class ScheduleController {
             List<Schedule> list = scheduleService.getSchedulesByDoctor(doctorId);
             return ApiResponse.success(list, "Lấy danh sách lịch thành công");
         } catch (Exception e) {
+            e.printStackTrace();
             return ApiResponse.error(1, "Lỗi: " + e.getMessage());
         }
     }
@@ -33,9 +34,11 @@ public class ScheduleController {
     @PostMapping
     public ApiResponse<Schedule> createSchedule(@RequestBody ScheduleRequestDTO request) {
         try {
+            // Lưu ý: ScheduleService cần lưu doctorId từ request vào bảng
             Schedule newSchedule = scheduleService.createSchedule(request);
             return ApiResponse.success(newSchedule, "Tạo lịch thành công");
         } catch (Exception e) {
+            e.printStackTrace();
             return ApiResponse.error(1, "Lỗi tạo lịch: " + e.getMessage());
         }
     }

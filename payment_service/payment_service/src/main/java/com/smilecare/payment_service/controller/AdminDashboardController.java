@@ -75,12 +75,20 @@ public class AdminDashboardController {
                         // Nên ta phải tạo Map lồng nhau để giả lập cấu trúc đó
                         Map<String, Object> userMap = new HashMap<>();
                         // Lấy patientInfo từ BookingDTO gán vào
-                        if (bookingInfo.getPatientInfo() != null) {
-                            userMap.put("fullName", bookingInfo.getPatientInfo().getFullName());
-                            userMap.put("phone", bookingInfo.getPatientInfo().getPhone());
+//                        if (bookingInfo.getPatientInfo() != null) {
+//                            userMap.put("fullName", bookingInfo.getPatientInfo().getFullName());
+//                            userMap.put("phone", bookingInfo.getPatientInfo().getPhone());
+//                        } else {
+//                            userMap.put("fullName", "Không có thông tin");
+//                        }
+                        // Thay thế bằng cách lấy trực tiếp patientId nếu có trong BookingDTO
+                        if (bookingInfo.getPatientId() != null) {
+                            userMap.put("patientId", bookingInfo.getPatientId());
+                            // Nếu muốn hiển thị tên, bạn phải gọi Feign Client sang User Service TẠI ĐÂY (nhưng ta làm đơn giản trước)
                         } else {
-                            userMap.put("fullName", "Không có thông tin");
+                            userMap.put("patientId", "Không xác định");
                         }
+
 
                         Map<String, Object> bookingMap = new HashMap<>();
                         bookingMap.put("User", userMap);

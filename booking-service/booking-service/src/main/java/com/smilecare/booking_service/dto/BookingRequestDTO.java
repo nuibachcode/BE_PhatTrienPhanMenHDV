@@ -22,4 +22,5 @@ public class BookingRequestDTO {
     // --- QUAN TRỌNG: Danh sách ID các dịch vụ được chọn ---
     // Frontend gửi lên mảng: serviceIds: [1, 2, 5]
     private List<Integer> serviceIds;
+
 }
