@@ -1,26 +1,30 @@
 package com.smilecare.booking_service.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
-@Table(name = "user") // Chuẩn tên bảng số ít
+@Table(name = "user") // Map vào bảng 'user' trong database chung
 public class User {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    // --- BẮT BUỘC PHẢI CÓ CÁC CỘT NÀY ĐỂ HIỂN THỊ TÊN ---
     @Column(name = "fullName")
     private String fullName;
 
     @Column(name = "phone")
     private String phone;
-    // ----------------------------------------------------
+
+    @Column(name = "address") // Thêm trường này để hiển thị trong Hồ sơ bệnh nhân
+    private String address;
+
+    @Column(name = "email")   // Thêm email nếu cần hiển thị
+    private String email;
+
     @Column(name = "roleId")
     private Integer roleId;
+
     public User() {
     }
 
@@ -29,6 +33,7 @@ public class User {
     }
 
     // --- Getters & Setters ---
+
     public Integer getId() {
         return id;
     }
@@ -37,7 +42,6 @@ public class User {
         this.id = id;
     }
 
-    // Phải có Getter thì JSON mới xuất ra được
     public String getFullName() {
         return fullName;
     }
@@ -53,6 +57,28 @@ public class User {
     public void setPhone(String phone) {
         this.phone = phone;
     }
-    public Integer getRoleId() { return roleId; }
-    public void setRoleId(Integer roleId) { this.roleId = roleId; }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public Integer getRoleId() {
+        return roleId;
+    }
+
+    public void setRoleId(Integer roleId) {
+        this.roleId = roleId;
+    }
 }

@@ -1,15 +1,16 @@
 package com.smilecare.booking_service.controller;
 
-import com.smilecare.booking_service.dto.ApiResponse;
-import com.smilecare.booking_service.dto.BookingRequestDTO;
-import com.smilecare.booking_service.dto.BookingResponseDTO;
-import com.smilecare.booking_service.dto.BookingHistoryResponse;
+import com.smilecare.booking_service.dto.*;
 import com.smilecare.booking_service.entity.Booking;
+import com.smilecare.booking_service.entity.DoctorInfo; // Import Entity DoctorInfo
+import com.smilecare.booking_service.entity.Service;
+import com.smilecare.booking_service.repository.DoctorInfoRepository; // Import Repo DoctorInfo
+import com.smilecare.booking_service.repository.ServiceRepository;
 import com.smilecare.booking_service.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate; // <--- Import này quan trọng để nhận tham số Date
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -19,85 +20,67 @@ import java.util.Map;
 public class BookingController {
 
     private final BookingService bookingService;
+    private final ServiceRepository serviceRepository;
+    private final DoctorInfoRepository doctorInfoRepository; // Sử dụng Repo này để lấy Bác sĩ + Chuyên khoa
 
-    // --- API 1: Lấy tất cả ---
+    // --- 1. API LẤY DANH SÁCH (RESOURCE) ---
+
+    // Đổi tên path để tránh trùng với /{id} gây lỗi 400
+    @GetMapping("/get-services")
+    public ApiResponse<List<Service>> getAllServices() {
+        return ApiResponse.success(serviceRepository.findAll(), "Lấy danh sách dịch vụ thành công");
+    }
+
+    @GetMapping("/get-doctors")
+    public ApiResponse<List<DoctorInfo>> getAllDoctors() {
+        // Trả về danh sách DoctorInfo (có chứa specialtyId và User info)
+        return ApiResponse.success(doctorInfoRepository.findAll(), "Lấy danh sách bác sĩ thành công");
+    }
+
+    // --- 2. CÁC API NGHIỆP VỤ BOOKING (GIỮ NGUYÊN) ---
+
     @GetMapping
     public ApiResponse<List<Booking>> getAllBookings() {
+        return ApiResponse.success(bookingService.getAllBookings(), "Thành công");
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<BookingResponseDTO> getBookingById(@PathVariable Integer id) {
+        return ApiResponse.success(bookingService.getBookingById(id), "Thành công");
+    }
+
+    @PostMapping
+    public ApiResponse<BookingResponseDTO> createBooking(@RequestBody BookingRequestDTO request) {
         try {
-            return ApiResponse.success(bookingService.getAllBookings(), "Lấy danh sách thành công");
+            Booking newBooking = bookingService.createBooking(request);
+            BookingResponseDTO response = new BookingResponseDTO();
+            response.setBookingId(newBooking.getId());
+            return ApiResponse.success(response, "Đặt lịch thành công");
         } catch (Exception e) {
             return ApiResponse.error(1, "Lỗi: " + e.getMessage());
         }
     }
 
-    // --- API 2: Lấy 1 cái theo ID ---
-    @GetMapping("/{id}")
-    public ApiResponse<BookingResponseDTO> getBookingById(@PathVariable Integer id) {
-        BookingResponseDTO result = bookingService.getBookingById(id);
-
-        if (result != null) {
-            return ApiResponse.success(result, "Lấy thông tin thành công");
-        } else {
-            return ApiResponse.error(1, "Không tìm thấy lịch hẹn ID: " + id);
-        }
-    }
-
-    // --- API 3: TẠO MỚI ---
-    @PostMapping
-    public ApiResponse<BookingResponseDTO> createBooking(@RequestBody BookingRequestDTO request) {
-        try {
-            Booking newBooking = bookingService.createBooking(request);
-
-            BookingResponseDTO response = new BookingResponseDTO();
-            response.setBookingId(newBooking.getId());
-            response.setStatus(newBooking.getStatus());
-            response.setMessage("Đặt lịch thành công!");
-            response.setDateBooking(newBooking.getDateBooking());
-            response.setTimeStart(newBooking.getTimeStart());
-
-            return ApiResponse.success(response, "Đặt lịch thành công");
-        } catch (Exception e) {
-            return ApiResponse.error(1, "Lỗi đặt lịch: " + e.getMessage());
-        }
-    }
-
-    // --- API 4: LẤY LỊCH SỬ ---
     @GetMapping("/patient/{patientId}")
     public ApiResponse<List<BookingHistoryResponse>> getHistory(@PathVariable Integer patientId) {
-        try {
-            List<BookingHistoryResponse> history = bookingService.getHistoryByPatientId(patientId);
-            return ApiResponse.success(history, "Lấy lịch sử thành công");
-        } catch (Exception e) {
-            return ApiResponse.error(1, "Lỗi lấy lịch sử: " + e.getMessage());
-        }
+        return ApiResponse.success(bookingService.getHistoryByPatientId(patientId), "Thành công");
     }
 
-    // --- API 5: CẬP NHẬT TRẠNG THÁI ---
     @PutMapping("/{id}")
     public ApiResponse<String> updateBookingStatus(@PathVariable Integer id, @RequestBody Map<String, String> body) {
-        try {
-            String newStatus = body.get("status");
-            boolean isUpdated = bookingService.updateStatus(id, newStatus);
-
-            if (isUpdated) {
-                return ApiResponse.success("OK", "Cập nhật trạng thái thành công");
-            } else {
-                return ApiResponse.error(1, "Không tìm thấy Booking ID: " + id);
-            }
-        } catch (Exception e) {
-            return ApiResponse.error(1, "Lỗi cập nhật: " + e.getMessage());
-        }
+        bookingService.updateStatus(id, body.get("status"));
+        return ApiResponse.success("OK", "Cập nhật thành công");
     }
 
-    // --- API 6: (MỚI THÊM) LẤY LỊCH KHÁM CHO BÁC SĨ ---
-    // URL: /api/bookings/doctor-schedule?doctorId=2&date=2025-12-09
     @GetMapping("/doctor-schedule")
-    public ApiResponse<List<BookingResponseDTO>> getDoctorSchedule(
-            @RequestParam Integer doctorId,
-            @RequestParam LocalDate date) {
+    public ApiResponse<List<BookingResponseDTO>> getDoctorSchedule(@RequestParam Integer doctorId, @RequestParam LocalDate date) {
+        return ApiResponse.success(bookingService.getBookingsByDoctorAndDate(doctorId, date), "Thành công");
+    }
+
+    @GetMapping("/doctor-patients")
+    public ApiResponse<List<PatientRecordResponse>> getDoctorPatients(@RequestParam Integer doctorId) {
         try {
-            List<BookingResponseDTO> list = bookingService.getBookingsByDoctorAndDate(doctorId, date);
-            return ApiResponse.success(list, "Lấy lịch khám thành công");
+            return ApiResponse.success(bookingService.getPatientsForDoctor(doctorId), "Thành công");
         } catch (Exception e) {
             return ApiResponse.error(1, "Lỗi: " + e.getMessage());
         }

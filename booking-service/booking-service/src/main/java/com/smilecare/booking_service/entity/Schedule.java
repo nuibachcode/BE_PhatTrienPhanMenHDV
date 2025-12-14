@@ -17,10 +17,10 @@ public class Schedule {
     private LocalDate dateWork;
 
     @Column(name = "timeStart")
-    private LocalTime timeStart;
+    private String timeStart; // <--- Đổi từ LocalTime sang String
 
     @Column(name = "timeEnd")
-    private LocalTime timeEnd;
+    private String timeEnd;   // <--- Đổi từ LocalTime sang String
 
     @Column(name = "maxPatient")
     private Integer maxPatient;
@@ -38,12 +38,11 @@ public class Schedule {
     @Column(name = "doctorId")
     private Integer doctorId;
 
-    // --- 2. THÊM MAPPING (Để lấy thông tin Bác sĩ) ---
-    // Join với bảng User thông qua cột doctorId
-    // insertable = false, updatable = false: Để tránh xung đột với cột Integer ở trên
+    // --- 2. QUAN TRỌNG: THÊM MAPPING NÀY ĐỂ HẾT LỖI getDoctorInfo() ---
+    // Join với bảng User thông qua cột doctorId để lấy tên bác sĩ
     @ManyToOne
     @JoinColumn(name = "doctorId", insertable = false, updatable = false)
-    private User doctorInfo;
+    private User doctorInfo; // <-- Biến này quan trọng
 
     public Schedule() {
     }
@@ -67,11 +66,12 @@ public class Schedule {
     public LocalDate getDateWork() { return dateWork; }
     public void setDateWork(LocalDate dateWork) { this.dateWork = dateWork; }
 
-    public LocalTime getTimeStart() { return timeStart; }
-    public void setTimeStart(LocalTime timeStart) { this.timeStart = timeStart; }
+    // --- Sửa lại Getter & Setter tương ứng ---
+    public String getTimeStart() { return timeStart; }
+    public void setTimeStart(String timeStart) { this.timeStart = timeStart; }
 
-    public LocalTime getTimeEnd() { return timeEnd; }
-    public void setTimeEnd(LocalTime timeEnd) { this.timeEnd = timeEnd; }
+    public String getTimeEnd() { return timeEnd; }
+    public void setTimeEnd(String timeEnd) { this.timeEnd = timeEnd; }
 
     public Integer getMaxPatient() { return maxPatient; }
     public void setMaxPatient(Integer maxPatient) { this.maxPatient = maxPatient; }
@@ -88,7 +88,8 @@ public class Schedule {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    // --- Getter & Setter cho Object User (Bác sĩ) ---
+    // --- QUAN TRỌNG: Getter & Setter cho Object User (Bác sĩ) ---
+    // Hàm này chính là hàm bị báo lỗi "cannot find symbol"
     public User getDoctorInfo() { return doctorInfo; }
     public void setDoctorInfo(User doctorInfo) { this.doctorInfo = doctorInfo; }
 }

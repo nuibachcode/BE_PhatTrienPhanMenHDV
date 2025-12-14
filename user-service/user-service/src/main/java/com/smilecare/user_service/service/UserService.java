@@ -11,7 +11,7 @@ import com.smilecare.user_service.repository.UserRepository;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder; // CẦN THIẾT
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,29 +33,33 @@ public class UserService {
     @Autowired
     private ModelMapper modelMapper;
 
-    // ⭐ ĐÃ THÊM: TIÊM PasswordEncoder (Giải quyết lỗi "Cannot resolve symbol")
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    // --- HÀM HỖ TRỢ ---
+    // --- HÀM HỖ TRỢ CONVERT DTO ---
     private UserResponseDTO convertToDTO(User user) {
-        return new UserResponseDTO(
-                user.getId(),
-                user.getFullName(),
-                user.getAccount(),
-                user.getEmail(),
-                user.getPhone(),
-                user.getAddress(),
-                user.getRole() != null ? user.getRole().getNameRole() : "Unknown",
-                user.getRole() != null ? user.getRole().getId() : 0
-        );
+        // Map thủ công để đảm bảo lấy đúng roleId và roleName
+        UserResponseDTO dto = new UserResponseDTO();
+        dto.setId(user.getId());
+        dto.setFullName(user.getFullName());
+        dto.setAccount(user.getAccount());
+        dto.setEmail(user.getEmail());
+        dto.setPhone(user.getPhone());
+        dto.setAddress(user.getAddress());
+
+        if (user.getRole() != null) {
+            dto.setRoleId(user.getRole().getId());       // Quan trọng cho Badge màu ở FE
+            dto.setRoleName(user.getRole().getNameRole());
+        } else {
+            dto.setRoleId(0);
+            dto.setRoleName("Unknown");
+        }
+        return dto;
     }
 
-    // --- HÀM TẠO USER MỚI (REGISTER) ---
+    // --- 1. ĐĂNG KÝ (REGISTER) ---
     @Transactional
     public ApiResponse<UserResponseDTO> createUser(UserRequestDTO request) {
-
-        // 1. Kiểm tra trùng lặp: Email, Username, Phone
         if (userRepository.existsByEmail(request.getEmail())) {
             return ApiResponse.error(1, "Email này đã được sử dụng!");
         }
@@ -66,7 +70,6 @@ public class UserService {
             return ApiResponse.error(1, "Số điện thoại này đã được sử dụng!");
         }
 
-        // 2. Chuyển DTO -> Entity và set các trường
         User user = new User();
         user.setFullName(request.getFullName());
         user.setAccount(request.getAccount() != null ? request.getAccount() : request.getEmail());
@@ -74,97 +77,108 @@ public class UserService {
         user.setPhone(request.getPhone());
         user.setAddress(request.getAddress());
 
-        // 3. BĂM MẬT KHẨU
-        // Đã sửa lỗi: Dùng passwordEncoder.encode()
         String hashedPassword = passwordEncoder.encode(request.getPassword());
         user.setPassWord(hashedPassword);
 
-        // 4. Tìm Role (Mặc định là PATIENT)
         Optional<Role> roleOptional = roleRepository.findById(DEFAULT_PATIENT_ROLE_ID);
-
         if (roleOptional.isEmpty()) {
             return ApiResponse.error(2, "Lỗi hệ thống: Role PATIENT không tồn tại!");
         }
         user.setRole(roleOptional.get());
 
-        // 5. Lưu vào Database
         User savedUser = userRepository.save(user);
-
-        // 6. Trả về kết quả thành công (Loại bỏ mật khẩu qua DTO)
-        UserResponseDTO responseDTO = convertToDTO(savedUser);
-        return ApiResponse.success(responseDTO, "Đăng ký tài khoản thành công!");
+        return ApiResponse.success(convertToDTO(savedUser), "Đăng ký tài khoản thành công!");
     }
 
-    // --- HÀM LOGIC LOGIN ---
+    // --- 2. ĐĂNG NHẬP (LOGIN) ---
     public ApiResponse<Map<String, Object>> loginUser(LoginRequest request) {
-
-        // 1. Tìm user theo Account hoặc Email (Giả định hàm findByAccountOrEmail tồn tại)
-            Optional<User> userOptional = userRepository.findByAccountOrEmail(request.getAccount(), request.getAccount());
+        Optional<User> userOptional = userRepository.findByAccountOrEmail(request.getAccount(), request.getAccount());
 
         if (userOptional.isPresent()) {
             User user = userOptional.get();
-
-            // 2. ĐỐI CHIẾU MẬT KHẨU
-            // Đã sửa lỗi: Dùng passwordEncoder.matches()
             if (passwordEncoder.matches(request.getPassword(), user.getPassWord())) {
-
-                // 3. Đăng nhập thành công
-
-                // Chuẩn bị dữ liệu trả về (Data)
                 Map<String, Object> data = new HashMap<>();
-                data.put("accessToken", "dummy-token-jwt-example-123456"); // Giả lập Token
+                data.put("accessToken", "dummy-token-jwt-example-123456"); // Cần thay bằng JWT thật
                 data.put("user", convertToDTO(user));
-
-                // Trả về ApiResponse thành công
                 return ApiResponse.success(data, "Đăng nhập thành công");
             }
         }
-
-        // Đăng nhập thất bại (Account không tồn tại HOẶC Mật khẩu không khớp)
         return ApiResponse.error(1, "Tài khoản hoặc mật khẩu không chính xác!");
     }
 
-    // --- HÀM GET USER BY ID ---
+    // --- 3. LẤY USER THEO ID ---
     public ApiResponse<UserResponseDTO> getUserById(Integer userId) {
         User user = userRepository.findById(userId).orElse(null);
-
         if (user == null) {
             return ApiResponse.error(1, "Người dùng không tồn tại.");
         }
-
-        UserResponseDTO responseDTO =modelMapper.map(user, UserResponseDTO.class);
-        return ApiResponse.success(responseDTO, "Lấy thông tin người dùng thành công.");
+        return ApiResponse.success(convertToDTO(user), "Lấy thông tin thành công.");
     }
 
-    // --- HÀM CẬP NHẬT PROFILE ---
+    // --- 4. CẬP NHẬT PROFILE ---
     @Transactional
     public ApiResponse<?> updateUserProfile(Integer userId, UserRequestDTO request) {
         User user = userRepository.findById(userId).orElse(null);
-
         if (user == null) {
             return ApiResponse.error(1, "Người dùng không tồn tại.");
         }
 
-        // Cập nhật các trường được phép sửa
-        if (request.getFullName() != null) {
-            user.setFullName(request.getFullName());
-        }
-        if (request.getPhone() != null) {
-            user.setPhone(request.getPhone());
-        }
-        if (request.getAddress() != null) {
-            user.setAddress(request.getAddress());
-        }
+        if (request.getFullName() != null) user.setFullName(request.getFullName());
+        if (request.getPhone() != null) user.setPhone(request.getPhone());
+        if (request.getAddress() != null) user.setAddress(request.getAddress());
 
         userRepository.save(user);
-
         return ApiResponse.success("Cập nhật thông tin thành công!");
     }
 
-    // --- HÀM GET ALL USERS ---
-    public List<UserResponseDTO> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    // =========================================================================
+    // PHẦN MỚI: CHO TRANG QUẢN LÝ USER (ADMIN)
+    // =========================================================================
+
+    // --- 5. LẤY DANH SÁCH TẤT CẢ USER (Bọc trong ApiResponse) ---
+    public ApiResponse<List<UserResponseDTO>> getAllUsers() {
+        try {
+            List<User> users = userRepository.findAll();
+            List<UserResponseDTO> dtos = users.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+
+            // Trả về ApiResponse chuẩn format {EC: 0, EM: "...", DT: [...]}
+            return ApiResponse.success(dtos, "Lấy danh sách người dùng thành công");
+        } catch (Exception e) {
+            return ApiResponse.error(-1, "Lỗi server khi lấy danh sách user");
+        }
     }
+
+    // --- 6. ĐỔI QUYỀN (ROLE) USER ---
+    public ApiResponse<UserResponseDTO> changeUserRole(Integer userId, Integer newRoleId) {
+        try {
+            User user = userRepository.findById(userId).orElse(null);
+            if (user == null) return ApiResponse.error(1, "User không tồn tại");
+
+            Role role = roleRepository.findById(newRoleId).orElse(null);
+            if (role == null) return ApiResponse.error(1, "Role không tồn tại");
+
+            user.setRole(role);
+            User updatedUser = userRepository.save(user);
+
+            return ApiResponse.success(convertToDTO(updatedUser), "Cập nhật quyền thành công!");
+        } catch (Exception e) {
+            return ApiResponse.error(-1, "Lỗi server khi đổi quyền");
+        }
+    }
+
+    // --- 7. XÓA USER ---
+    public ApiResponse<String> deleteUser(Integer userId) {
+        try {
+            if (!userRepository.existsById(userId)) {
+                return ApiResponse.error(1, "User không tồn tại");
+            }
+            userRepository.deleteById(userId);
+            return ApiResponse.success("Xóa user thành công!");
+        } catch (Exception e) {
+            return ApiResponse.error(-1, "Không thể xóa user (có thể do ràng buộc dữ liệu)");
+        }
+    }
+
 }
